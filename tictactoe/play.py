@@ -1,13 +1,17 @@
 
 from core.main import Match, SequentialGame, DRAW
 from .referee import TicTacToe
-from .players import RandomTTTPlayer, IOTTTPlayer, MiniMaxingTTTPlayer
+from .players import RandomTTTPlayer, IOTTTPlayer, MiniMaxingTTTPlayer, TensorFlowTTTPlayer
 
 
 # TODO: unire referee a game? gestire tutto in una sottoclasse di match?
 
 
 AIS = [{
+    'caption': 'neural network',
+    'class': TensorFlowTTTPlayer,
+    'options': []
+}, {
     'caption': 'minimax',
     'class': MiniMaxingTTTPlayer,
     'options': [{

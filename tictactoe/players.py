@@ -2,7 +2,9 @@ import logging
 
 from core.players import RandomPlayer, IOPlayer, Player
 from core.lib import negamax, minimax
-from .referee import LINES, SYMBOLS
+
+from .referee import LINES, SYMBOLS, EMPTY
+from .tf_training import get_callable_from_saved_network, DEFAULT_PATH
 
 
 logger = logging.getLogger('tictactoe.players')
@@ -10,10 +12,13 @@ logger = logging.getLogger('tictactoe.players')
 inf = float('inf')
 
 
-class IOTTTPlayer(IOPlayer):
-
+class TTTPlayer(Player):
     turn_lines = 3
     setup_lines = 1
+
+
+
+class IOTTTPlayer(IOPlayer, TTTPlayer):
 
     loud = False
 
@@ -22,16 +27,13 @@ class IOTTTPlayer(IOPlayer):
         return super().setup(player_id, inp)
 
 
-class RandomTTTPlayer(RandomPlayer):
-
-    turn_lines = 3
-    setup_lines = 1
+class RandomTTTPlayer(RandomPlayer, TTTPlayer):
 
     def process_turn_input(self, inp):
         a = self.available_moves = []
         for r, row in zip('ABC', inp):
             for c, cell in zip('123', row.split()):
-                if cell == '.':
+                if cell == EMPTY:
                     a.append(r + c)
         logger.debug('available_moves: %s', self.available_moves)
 
@@ -39,10 +41,8 @@ class RandomTTTPlayer(RandomPlayer):
         return self.available_moves
 
 
-class MiniMaxingTTTPlayer(Player):
+class MiniMaxingTTTPlayer(TTTPlayer):
 
-    turn_lines = 3
-    setup_lines = 1
     algorithm = 'negamax'
 
     search_depth = 0
@@ -87,9 +87,9 @@ class MiniMaxingTTTPlayer(Player):
                 val += 100
             for l in LINES:
                 linestr = ''.join(board[c] for c in l)
-                if linestr.count(me) == 2 and '.' in linestr:
+                if linestr.count(me) == 2 and EMPTY in linestr:
                     val += 1
-                elif linestr.count(opp) == 2 and '.' in linestr:
+                elif linestr.count(opp) == 2 and EMPTY in linestr:
                     val -= 1
         return val
 
@@ -97,7 +97,7 @@ class MiniMaxingTTTPlayer(Player):
     def child_function(node):
         board, to_move = node['board'], node['to_move']
         for k, v in board.items():
-            if v == '.':
+            if v == EMPTY:
                 b = board.copy()
                 b[k] = SYMBOLS[to_move]
                 yield {
@@ -112,7 +112,7 @@ class MiniMaxingTTTPlayer(Player):
         for s in SYMBOLS[1:]:
             if any(all(board[c] == s for c in l) for l in LINES):
                 return True
-        return all(c != '.' for c in board.values())
+        return all(c != EMPTY for c in board.values())
 
     def process_turn_input(self, inp):
         b = self.board = {}
@@ -121,7 +121,7 @@ class MiniMaxingTTTPlayer(Player):
             for c, cell in zip('123', row.split()):
                 k = r + c
                 b[k] = cell
-                if cell == '.':
+                if cell == EMPTY:
                     a.append(k)
 
     def compute_move(self):
@@ -130,7 +130,8 @@ class MiniMaxingTTTPlayer(Player):
             self.slightly_better_value_function,
             self.some_heuristics
         ][self.evaluation_level]
-        algo = {'minimax': minimax, 'negamax': negamax}[self.algorithm]
+        algo = {'minimax': minimax,
+                'negamax': negamax}[self.algorithm]
 
         bestvalue, bestmove = algo({'board': self.board, 'to_move': self.id, 'move': None},
                           value_function=valf, child_function=self.child_function,
@@ -138,7 +139,19 @@ class MiniMaxingTTTPlayer(Player):
         return bestmove['move']
 
 
-class TensorFlowTTTPlayer(Player):
+class TensorFlowTTTPlayer(TTTPlayer):
+    '''
+        uses a trained neural network with 9 neurons input (representing spaces in the grid)
+        and 9 neurons output (representing chance that the move in that position is the best move)
+
+        since this appears to be some sort of a standard, in the grid 1 represents my pieces, -1 opponent pieces,
+        and 0 empty cells
+    '''
+    saved_nn_path = DEFAULT_PATH
+
+    def setup(self, player_id, inp):
+        super().setup(player_id, inp)
+        self.nn = get_callable_from_saved_network(self.saved_nn_path)
 
     def process_turn_input(self, inp):
         symbols = {
@@ -148,10 +161,8 @@ class TensorFlowTTTPlayer(Player):
         }
         self.network_input = [symbols[c] for row in inp for c in row.split()]
 
-    def tf_magic(self):
-        return NotImplemented
-
     def compute_move(self):
-        outp = self.tf_magic()
-        for el in outp:
-            pass
+        outp = self.nn(self.network_input)
+        print('outp:', outp * 100)
+        move = max((el, i) for i, el in enumerate(outp) if self.network_input[i] == 0)[1]
+        return 'ABC'[move // 3] + '123'[move % 3]

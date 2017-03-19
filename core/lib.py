@@ -1,27 +1,22 @@
+import numpy as np
+
 
 inf = float('inf')
 
 
+def normalize(arr, ord=None):
+    '''
+    incredibile ma numpy non ha un modo per normalizzare un array
+    sklearn ne aveva uno, ma mi da' un deprecation warning con array 1-dimensionali
+    a quanto pare e' un mestire difficile :/
+
+    raises a ZeroDivisionError if a 0 vector is passed
+    '''
+    norm = np.linalg.norm(arr, ord=ord)
+    return arr / norm
+
+
 def minimax(node, value_function, child_function, terminal_function, depth, maximizing=True):
-    '''
-    01 function minimax(node, depth, maximizingPlayer)
-    02     if depth = 0 or node is a terminal node
-    03         return the heuristic value of node
-
-    04     if maximizingPlayer
-    05         bestValue := −∞
-    06         for each child of node
-    07             v := minimax(child, depth − 1, FALSE)
-    08             bestValue := max(bestValue, v)
-    09         return bestValue
-
-    10     else    (* minimizing player *)
-    11         bestValue := +∞
-    12         for each child of node
-    13             v := minimax(child, depth − 1, TRUE)
-    14             bestValue := min(bestValue, v)
-    15         return bestValue
-    '''
     if not depth or terminal_function(node):
         bestvalue = value_function(node)
         bestchild = node
@@ -43,17 +38,6 @@ def minimax(node, value_function, child_function, terminal_function, depth, maxi
 
 
 def negamax(node, value_function, child_function, terminal_function, depth, color=1):
-    '''
-    01 function negamax(node, depth, color)
-    02     if depth = 0 or node is a terminal node
-    03         return color * the heuristic value of node
-
-    04     bestValue := −∞
-    05     foreach child of node
-    06         v := −negamax(child, depth − 1, −color)
-    07         bestValue := max( bestValue, v )
-    08     return bestValue
-    '''
     if not depth or terminal_function(node):
         bestvalue = color * value_function(node)
         bestchild = node

@@ -10,5 +10,7 @@ match_logger.setLevel(logging.WARN)
 player_logger.setLevel(logging.DEBUG)
 ref_logger.setLevel(logging.DEBUG)
 
-test_game()
+
+if __name__ == '__main__':
+    test_game()
 

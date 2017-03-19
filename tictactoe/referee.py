@@ -1,8 +1,9 @@
-
+from itertools import cycle
 
 from core.main import Referee, InvalidMove, DRAW, RUNNING, ref_logger
 
-SYMBOLS = ['.', 'X', 'O']  # player_id parte da 1
+EMPTY = '.'
+SYMBOLS = [EMPTY, 'X', 'O']  # player_id parte da 1
 
 LINES = [['A1', 'A2', 'A3'], ['B1', 'B2', 'B3'], ['C1', 'C2', 'C3'],
         ['A1', 'B1', 'C1'], ['A2', 'B2', 'C2'], ['A3', 'B3', 'C3'],
@@ -13,7 +14,7 @@ class TicTacToe(Referee):
 
     def __init__(self, players):
         super().__init__(players)
-        self.board = dict.fromkeys((x + y for x in 'ABC' for y in '123'), '.')
+        self.board = dict.fromkeys((x + y for x in 'ABC' for y in '123'), EMPTY)
         self.turn_number = 0
 
     def setup(self):
@@ -32,7 +33,7 @@ class TicTacToe(Referee):
             occ = b[move]
         except KeyError:
             raise InvalidMove('moves should be of type "XY" with X in "ABC" and Y in "123", received: "{}"'.format(move))
-        if occ != '.':
+        if occ != EMPTY:
             raise InvalidMove('received move {}, tile already occupied'.format(move))
         v = b[move] = SYMBOLS[player_id]
         ref_logger.info('subturn %s; board:\n%s', self.turn_number, self.draw_board())
@@ -40,7 +41,7 @@ class TicTacToe(Referee):
             self.round_number += 1
         if any(all(b[li] == v for li in line) for line in LINES):
             return player_id
-        if all(v != '.' for v in b.values()):
+        if all(v != EMPTY for v in b.values()):
             return DRAW
         return RUNNING
 
@@ -50,5 +51,5 @@ class TicTacToe(Referee):
             '   ---+---+---\n' \
             'B   {b[B1]} | {b[B2]} | {b[B3]}\n' \
             '   ---+---+---\n' \
-            'C   {b[C1]} | {b[C2]} | {b[C3]}\n'.format(b=self.board).replace('.', ' ')
+            'C   {b[C1]} | {b[C2]} | {b[C3]}\n'.format(b=self.board).replace(EMPTY, ' ')
 
