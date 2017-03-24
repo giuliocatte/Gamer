@@ -1,10 +1,10 @@
 import logging
 
 from core.players import RandomPlayer, IOPlayer, Player
-from core.lib import negamax, minimax
+from core.lib import negamax, minimax, shuffling_negamax, normalize
 
 from .referee import LINES, SYMBOLS, EMPTY
-from .tf_training import get_callable_from_saved_network, DEFAULT_PATH
+from .nn import get_callable_from_saved_network, DEFAULT_PATH
 
 
 logger = logging.getLogger('tictactoe.players')
@@ -43,10 +43,10 @@ class RandomTTTPlayer(RandomPlayer, TTTPlayer):
 
 class MiniMaxingTTTPlayer(TTTPlayer):
 
-    algorithm = 'negamax'
+    algorithm = 'negamax+'
 
-    search_depth = 0
-    evaluation_level = 0
+    search_depth = 2
+    evaluation_level = 2
 
     def dumb_value_function(self, node):
         board = node['board']
@@ -83,8 +83,6 @@ class MiniMaxingTTTPlayer(TTTPlayer):
         elif any(all(board[c] == opp for c in l) for l in LINES):
             val = -inf
         else:
-            if board['B2'] == me:
-                val += 100
             for l in LINES:
                 linestr = ''.join(board[c] for c in l)
                 if linestr.count(me) == 2 and EMPTY in linestr:
@@ -123,6 +121,7 @@ class MiniMaxingTTTPlayer(TTTPlayer):
                 b[k] = cell
                 if cell == EMPTY:
                     a.append(k)
+        logger.debug('board state: %s; available moves: %s;', b, a)
 
     def compute_move(self):
         valf = [
@@ -131,11 +130,19 @@ class MiniMaxingTTTPlayer(TTTPlayer):
             self.some_heuristics
         ][self.evaluation_level]
         algo = {'minimax': minimax,
-                'negamax': negamax}[self.algorithm]
+                'negamax': negamax,
+                'negamax+': shuffling_negamax}[self.algorithm]
+
+        # # TODO: togliere
+        # if len(self.available_moves) == 9:
+        #     return 'C1'
+        # if len(self.available_moves) == 7:
+        #     return 'A1'
 
         bestvalue, bestmove = algo({'board': self.board, 'to_move': self.id, 'move': None},
                           value_function=valf, child_function=self.child_function,
                          terminal_function=self.terminal_function, depth=self.search_depth)
+        logger.debug('bestmove: %s; bestvalue: %s', bestmove, bestvalue)
         return bestmove['move']
 
 
@@ -163,6 +170,6 @@ class TensorFlowTTTPlayer(TTTPlayer):
 
     def compute_move(self):
         outp = self.nn(self.network_input)
-        print('outp:', outp * 100)
+        logger.debug('nn output: %s', outp)
         move = max((el, i) for i, el in enumerate(outp) if self.network_input[i] == 0)[1]
         return 'ABC'[move // 3] + '123'[move % 3]

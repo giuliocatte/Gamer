@@ -1,4 +1,5 @@
 import numpy as np
+from random import choice
 
 
 inf = float('inf')
@@ -49,7 +50,27 @@ def negamax(node, value_function, child_function, terminal_function, depth, colo
             if v >= bestvalue:
                 bestvalue = v
                 bestchild = child
-            bestvalue = max(bestvalue, v)
+    return bestvalue, bestchild
+
+
+def shuffling_negamax(node, value_function, child_function, terminal_function, depth, color=1):
+    '''
+    like negamax, but randomizes move between same value moves
+    '''
+    if not depth or terminal_function(node):
+        bestvalue = color * value_function(node)
+        bestchild = node
+    else:
+        bestvalue, bestchild = -inf, []
+        for child in child_function(node):
+            v, _ = negamax(child, value_function, child_function, terminal_function, depth - 1, -color)
+            v = -v
+            if v == bestvalue:
+                bestchild.append(child)
+            elif v > bestvalue:
+                bestvalue = v
+                bestchild = [child]
+        bestchild = choice(bestchild)
     return bestvalue, bestchild
 
 

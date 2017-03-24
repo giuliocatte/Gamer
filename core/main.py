@@ -16,25 +16,37 @@ class InvalidMove(Exception):
 
 
 class Game:
+    '''
+        structure class to manage comunication between a "referee" and 2 or more players
+        ideally (but this is not implemented yet) these agents could be run asinchronically
+    '''
 
     def __init__(self, referee_class):
         self.referee_class = referee_class
 
 
 class SimultanousGame(Game):
+    '''
+        a game where all player turns are taken simultaneously
+        the referee evaluates all the moves toghether, in a list
+    '''
 
     def turn(self, referee, players):
         boards = referee.get_boards()
         moves = []
         for p, b in zip(players, boards):
             for r in b:
-                m = p.listener.send(r)  # se l'input ha valori multipli mi interessa solo l'ultimo output
+                m = p.listener.send(r)  # if input has multiple lines, only the last output is of interest
             moves.append(m)
         # TODO: gestire simultaneita' di esecuzione e valutare timeout
         return referee.execute_turn(moves)
 
 
 class SequentialGame(Game):
+    '''
+        a game where players plays one at a time
+        each move is passed to the referee that updates the board for the next player
+    '''
 
     def turn(self, referee, players):
         for i, p in enumerate(players):
@@ -42,7 +54,7 @@ class SequentialGame(Game):
             board = referee.get_board(i)
             match_logger.debug('player %s to move', i)
             for b in board:
-                m = p.listener.send(b)  # se l'input ha valori multipli mi interessa solo l'ultimo output
+                m = p.listener.send(b)  # if input has multiple lines, only the last output is of interest
             # TODO: valutare timeout
             try:
                 state = referee.execute_turn(i, m)
@@ -66,12 +78,14 @@ class Referee:
     def setup(self):
         '''
             generates the starting game data for each player as a list
+            probably you would overwrite this
         '''
         return self.get_boards()
 
     def get_board(self, player_id):
         '''
             returns the current board info for player "player_id"
+            as a sequence of strings
         '''
         return NotImplemented
 

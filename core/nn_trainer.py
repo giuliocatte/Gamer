@@ -1,106 +1,55 @@
 import collections
 import os
 import random
-from itertools import cycle
 
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 
 try:
-    from core.nn import load_network, create_network, save_network
     from core.lib import normalize
+    from core.nn import create_network, load_network, save_network
 except ImportError:
     # executing as __main__
-    import os
     import sys
     currentdir = os.path.dirname(os.path.abspath(__file__))
     parentdir = os.path.dirname(currentdir)
-    print(parentdir)
     sys.path.append(parentdir)
-
-    from core.nn import load_network, create_network, save_network
     from core.lib import normalize
-
-DEFAULT_PATH = 'current_network.p'
-HIDDEN_LAYERS = (100, 100, 100)
+    from core.nn import create_network, load_network, save_network
 
 
-def get_callable_from_saved_network(file_path=DEFAULT_PATH):
-    session = tf.Session()
-    session.run(tf.initialize_all_variables())
-
-    input_layer, output_layer, variables = create_network(9, hidden_nodes=HIDDEN_LAYERS)
-    load_network(session, variables, file_path)
-
-    def cal(board):
-        return session.run(output_layer, feed_dict={input_layer: np.array(board).reshape(1, 9)})[0]
-
-    return cal
-
-
-def stochastic_move(session, input_layer, output_layer, board, side=1, valid_only=False):
-    '''
-        returns a move as a vector, comupted with the probabilities of the session's nn
-        if I default valid_only=True, suddently the win ratio drops instead of raising.
-        boh
-        forse e' normalize che fa qualcosa che non va?
-        TODO: indagare
-    '''
-    board_tensor = (np.array(board) * side).reshape(1, 9)
-    probabilities = session.run(output_layer, feed_dict={input_layer: board_tensor})[0]
-
-    if valid_only:
-        probabilities = normalize([p if not board[i] else 0 for i, p in enumerate(probabilities)], ord=0)  # 1 sum
-    try:
-        move = np.random.multinomial(1, probabilities)
-    except ValueError:
-        # se la somma e' maggiore di uno si arrabbia, e (forse) puo' capitare per l'arrotondamento
-        # d'altro canto, se e' inferiore di uno, aggiunge all'ultimo elemento quel che manca
-        # quindi sarebbe meglio calare solo l'ultimo che tutti, ma non ce l'ho fatta, non so perche'
-        # TODO: indagare
-        move = np.random.multinomial(1, probabilities / (1. + 1e-6))
-    return move
-
-
-_lines = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]]
-
-
-def play_full_game(mover1, mover2):
-    '''
-        gioca un'intera partita fra il mover1 e il mover2
-        ritorna 1 se vince mover1, -1 se vince mover2, 0 se e' un pareggio
-
-        NON usa le regole del gioco normale, ma una versione ermetica
-        le mosse sono numeri da 0 a 8, il board viene passato ai mover come una lista di 9 elementi
-    '''
-    board = [0, 0, 0, 0, 0, 0, 0, 0, 0]
-    for plid, mover in cycle(zip((1, -1), (mover1, mover2))):
-        move = mover(board, plid)
-        if board[move]:
-            return -plid  # fail due to invalid move
-        board[move] = plid
-        if any(all(board[l] == plid for l in line) for line in _lines):
-            return plid  # won
-        if all(board):
-            return 0  # draw
-
-
-def random_mover(board, pid):
-    valid = [i for i in range(9) if not board[i]]
-    return random.choice(valid)
-
-
-
-def train_policy_gradients(opponent_func=None, nn_path=None, nn_write_path=None, number_of_games=10000,
+def train_policy_gradients(nn_parameters, move_shape, match_func, opponent_func,
+                           nn_path=None, nn_write_path=None, number_of_games=10000,
                            print_results_every=1000, learn_rate=1e-4, batch_size=100, randomize_first_player=True):
     '''
         Train a network using policy gradients
+
+        nn_parameters dict of arguments for create_network
+        move_shape tuple describing the shape of the
+        match_func function that streamlines the referee role: takes in input player functions, return as output
+            id of the winning player (1 or -1) or 0 in the case of a draw
+        opponent_func function that represents the opponent: takes in input board state and player id, returns in output
+            a flat move
+
+        if just nn_write_path is passed, writes a new net at the given path
+        if just nn_path is passed, reads a net in given path, trains it further, and overwrites it
+        if both are passed, reads from nn_path, trains and then writes in nn_write_path
+
+
+        per generalizzarlo: il 9 in actual_move_placeholder e' la lunghezza della mossa
+        poi c'e' il numero di neuroni della rete (input, output e hidden) passati a create_network
+        play full game va generalizzato
+
+        mi chiedo se ci sia modo di fargli mangiare un oggetto di classe Game e uno di classe Player e fargli calcolare
+        da quello play_game e opponent_func.... il problema e' che quelli parlano stringhe, c'e' da fare un bello strato
+        di interfaccia... ma forse e' possibile.. l'unica cosa e' la lunghezza della mossa che la dovro' mettere
+        in un parametro?
     '''
     nn_write_path = nn_write_path or nn_path
     reward_placeholder = tf.placeholder("float", shape=(None,))
-    actual_move_placeholder = tf.placeholder("float", shape=(None, 9))
+    actual_move_placeholder = tf.placeholder("float", shape=move_shape)
 
-    input_layer, output_layer, variables = create_network(9, hidden_nodes=HIDDEN_LAYERS)
+    input_layer, output_layer, variables = create_network(**nn_parameters)
 
     policy_gradient = tf.log(  # natural logarithm
         tf.reduce_sum(tf.mul(actual_move_placeholder, output_layer), reduction_indices=1)) * reward_placeholder
@@ -122,15 +71,12 @@ def train_policy_gradients(opponent_func=None, nn_path=None, nn_write_path=None,
             mini_batch_moves.append(move)
             return move.argmax()  # returns move as an index
 
-        opponent_func = opponent_func or random_mover
-
         for episode_number in range(1, number_of_games):
             # randomize if going first or second
             if (not randomize_first_player) or bool(random.getrandbits(1)):
-                reward = play_full_game(make_training_move, opponent_func)
+                reward = match_func(make_training_move, opponent_func)
             else:
-                reward = -play_full_game(opponent_func, make_training_move)
-
+                reward = -match_func(opponent_func, make_training_move)
             results.append(reward)
 
             # we scale here so winning quickly is better winning slowly and loosing slowly better than loosing quick
@@ -155,9 +101,6 @@ def train_policy_gradients(opponent_func=None, nn_path=None, nn_write_path=None,
                 session.run(train_step, feed_dict={input_layer: np_mini_batch_board_states,
                                                    reward_placeholder: normalized_rewards,
                                                    actual_move_placeholder: mini_batch_moves})
-
-                # print('GAME')
-                # print(mini_batch_board_states[-last_game_length:], mini_batch_rewards[-1])
 
                 # clear batches
                 del mini_batch_board_states[:]
@@ -185,5 +128,25 @@ def _win_rate(print_results_every, results):
     return 0.5 + sum(results) / (print_results_every * 2.)
 
 
-if __name__ == '__main__':
-    train_policy_gradients(number_of_games=1000000, nn_write_path=DEFAULT_PATH)
+def stochastic_move(session, input_layer, output_layer, board, side=1, valid_only=False):
+    '''
+        returns a move as a vector, computed with the probabilities of the session's nn
+        if I default valid_only=True, suddently the win ratio drops instead of raising.
+        boh
+    '''
+    board_tensor = (np.array(board) * side).reshape(1, 9)
+    probabilities = session.run(output_layer, feed_dict={input_layer: board_tensor})[0]
+
+    if valid_only:
+        probabilities = normalize([p if not board[i] else 0 for i, p in enumerate(probabilities)], ord=1)
+    try:
+        move = np.random.multinomial(1, probabilities)
+    except ValueError:
+        # se la somma e' maggiore di uno si arrabbia, e (forse) puo' capitare per l'arrotondamento
+        # d'altro canto, se e' inferiore di uno, aggiunge all'ultimo elemento quel che manca
+        # quindi sarebbe meglio calare solo l'ultimo piuttosto che tutti, ma non ce l'ho fatta, non so perche'
+        # TODO: indagare
+        # probabilities[-1] -= 1e-6
+        # move = np.random.multinomial(1, probabilities)
+        move = np.random.multinomial(1, probabilities / (1. + 1e-6))
+    return move

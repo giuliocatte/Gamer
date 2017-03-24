@@ -45,7 +45,6 @@ def create_network(input_nodes, hidden_nodes, output_nodes=None, output_softmax=
             variables.append(hidden_weights)
             variables.append(hidden_bias)
 
-            # relu sta per rectified linear
             current_layer = tf.nn.relu(
                 tf.matmul(current_layer, hidden_weights) + hidden_bias)
 

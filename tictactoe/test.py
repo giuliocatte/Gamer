@@ -19,7 +19,7 @@ AIS = [{
         'caption': 'search depth',
         'default': 2,
         'values': [
-            'dumb',
+            '',
             'picks immediate best move',
             'considers also your next move',
             'plans two moves ahead',
@@ -27,11 +27,11 @@ AIS = [{
         ]}, {
         'name': 'evaluation_level',
         'caption': 'evaluation level',
-        'default': 0,
+        'default': 2,
         'values': [
             'only considers winning moves',
-            'considers center occupation',
-            'some overkill heuristics'
+            'will try to get center',
+            'will try to build partial lines'
         ]}]
 }, {
     'caption': 'random',
@@ -49,14 +49,28 @@ def test_game():
     for opt in ai['options']:
         print('enter {}:'.format(opt['caption']))
         for i, ov in enumerate(opt['values']):
-            print('{}. {}{}'.format(i, ov, ' (default)' if i == opt['default'] else ''))
+            if ov:
+                print('{}. {}{}'.format(i, ov, ' (default)' if i == opt['default'] else ''))
         v = input()
         kw[opt['name']] = int(v or opt['default'])
-
-    match = Match(SequentialGame(referee_class=TicTacToe), players=[
+    print('pick player order?')
+    print('0. random (default)')
+    print('1. go first')
+    print('2. go second')
+    ord = int(input() or 0)
+    players = [
+#            TensorFlowTTTPlayer(),
             IOTTTPlayer(),
             ai['class'](**kw)
-    ])
+    ]
+    if ord:
+        rand = False
+        if ord == 2:
+            players.reverse()
+    else:
+        rand = True
+
+    match = Match(SequentialGame(referee_class=TicTacToe), players=players, random_order=rand)
     outcome = match.run()
     if outcome == DRAW:
         print('Draw!')
