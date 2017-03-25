@@ -30,15 +30,11 @@ def train_policy_gradients(nn_parameters, move_shape, match_func, opponent_func,
             id of the winning player (1 or -1) or 0 in the case of a draw
         opponent_func function that represents the opponent: takes in input board state and player id, returns in output
             a flat move
+        batch_size the size of the mini batch (cfr http://sebastianruder.com/optimizing-gradient-descent/#minibatchgradientdescent)
 
         if just nn_write_path is passed, writes a new net at the given path
         if just nn_path is passed, reads a net in given path, trains it further, and overwrites it
         if both are passed, reads from nn_path, trains and then writes in nn_write_path
-
-
-        per generalizzarlo: il 9 in actual_move_placeholder e' la lunghezza della mossa
-        poi c'e' il numero di neuroni della rete (input, output e hidden) passati a create_network
-        play full game va generalizzato
 
         mi chiedo se ci sia modo di fargli mangiare un oggetto di classe Game e uno di classe Player e fargli calcolare
         da quello play_game e opponent_func.... il problema e' che quelli parlano stringhe, c'e' da fare un bello strato

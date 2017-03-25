@@ -2,6 +2,7 @@ import logging
 
 from core.players import RandomPlayer, IOPlayer, Player
 from core.lib import shuffling_negamax
+from .referee import check_victory
 
 logger = logging.getLogger('tictactoe.players')
 
@@ -28,7 +29,7 @@ class RandomCFPlayer(RandomPlayer, CFPlayer):
         a = self.available_moves = []
         for i, col in enumerate(inp):
             if col[-1] == '0':
-                self.available_moves.append(str(i + 1))
+                a.append(str(i + 1))
         logger.debug('available_moves: %s', self.available_moves)
 
     def compute_available_moves(self):
@@ -38,10 +39,16 @@ class RandomCFPlayer(RandomPlayer, CFPlayer):
 class MiniMaxingCFPlayer(CFPlayer):
 
     search_depth = 2
-    evaluation_level = 1
+    evaluation_level = 0
 
     def dumb_value_function(self, node):
-        raise NotImplementedError
+        board = node['board']
+        move = node['move']
+        try:
+            y = board[move].index(0) - 1
+        except IndexError:
+            y = 6
+        return check_victory(board, move, y, node['to_move'])
 
     def some_heuristics(self, node):
         raise NotImplementedError
@@ -49,38 +56,40 @@ class MiniMaxingCFPlayer(CFPlayer):
     @staticmethod
     def child_function(node):
         board, to_move = node['board'], node['to_move']
-        for k, v in board.items():
-            if v == EMPTY:
-                b = board.copy()
-                b[k] = SYMBOLS[to_move]
+        for x, col in enumerate(board):
+            if col[-1] == 0:
+                c = list(col)
+                c[c.index(0)] = to_move
+                b = list(board)
+                b[x] = c
                 yield {
                     'board': b,
-                    'to_move': (to_move % 2) + 1,
-                    'move': k
+                    'to_move': -to_move,
+                    'move': x
                 }
 
     @staticmethod
     def terminal_function(node):
         board = node['board']
-        for s in SYMBOLS[1:]:
-            if any(all(board[c] == s for c in l) for l in LINES):
-                return True
-        return all(c != EMPTY for c in board.values())
+        move = node['move']
+        try:
+            y = board[move].index(0) - 1
+        except IndexError:
+            y = 6
+        if check_victory(board, move, y, node['to_move']):
+            return True
+        if all(c[-1] != 0 for c in board):
+            return True
+        return False
 
     def process_turn_input(self, inp):
-        b = self.board = {}
-        a = self.available_moves = []
-        for r, row in zip('ABC', inp):
-            for c, cell in zip('123', row.split()):
-                k = r + c
-                b[k] = cell
-                if cell == EMPTY:
-                    a.append(k)
-        logger.debug('board state: %s; available moves: %s;', b, a)
+        b = self.board = []
+        for col in inp:
+            b.append([int(v) for v in col.split()])
 
     def compute_move(self):
         valf = [self.dumb_value_function, self.some_heuristics][self.evaluation_level]
-        bestvalue, bestmove = shuffling_negamax({'board': self.board, 'to_move': self.id, 'move': None},
+        bestvalue, bestmove = shuffling_negamax({'board': self.board, 'to_move': 1 if self.id == 1 else -1, 'move': None},
                           value_function=valf, child_function=self.child_function,
                          terminal_function=self.terminal_function, depth=self.search_depth)
         logger.debug('bestmove: %s; bestvalue: %s', bestmove, bestvalue)

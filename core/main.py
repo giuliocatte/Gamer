@@ -1,6 +1,8 @@
 import logging
 from random import shuffle
 
+from .players import IOPlayer
+
 match_logger = logging.getLogger('gamer.match')
 ref_logger = logging.getLogger('gamer.referee')
 player_logger = logging.getLogger('gamer.player')
@@ -10,6 +12,9 @@ player_logger = logging.getLogger('gamer.player')
 RUNNING = 0
 DRAW = -1
 
+SIMULTANEOUS = 1
+SEQUENTIAL = 2
+
 
 class InvalidMove(Exception):
     pass
@@ -17,58 +22,8 @@ class InvalidMove(Exception):
 
 class Game:
     '''
-        structure class to manage comunication between a "referee" and 2 or more players
-        ideally (but this is not implemented yet) these agents could be run asinchronically
+        abstract base class for games
     '''
-
-    def __init__(self, referee_class):
-        self.referee_class = referee_class
-
-
-class SimultanousGame(Game):
-    '''
-        a game where all player turns are taken simultaneously
-        the referee evaluates all the moves toghether, in a list
-    '''
-
-    def turn(self, referee, players):
-        boards = referee.get_boards()
-        moves = []
-        for p, b in zip(players, boards):
-            for r in b:
-                m = p.listener.send(r)  # if input has multiple lines, only the last output is of interest
-            moves.append(m)
-        # TODO: gestire simultaneita' di esecuzione e valutare timeout
-        return referee.execute_turn(moves)
-
-
-class SequentialGame(Game):
-    '''
-        a game where players plays one at a time
-        each move is passed to the referee that updates the board for the next player
-    '''
-
-    def turn(self, referee, players):
-        for i, p in enumerate(players):
-            i = i + 1
-            board = referee.get_board(i)
-            match_logger.debug('player %s to move', i)
-            for b in board:
-                m = p.listener.send(b)  # if input has multiple lines, only the last output is of interest
-            # TODO: valutare timeout
-            try:
-                state = referee.execute_turn(i, m)
-            except InvalidMove as e:
-                match_logger.warn('player %s lost due to invalid move:\n%s', i, e)
-                # TODO: questo funziona solo per due giocatori
-                state = (i % 2) + 1
-            if state != RUNNING:
-                # TODO: eventualmente gestire sequential pero' con parita' di turni per la vittoria
-                return state
-        return state
-
-
-class Referee:
 
     def __init__(self, players=2, random_seed=None):
         self.players_number = players
@@ -87,7 +42,7 @@ class Referee:
             returns the current board info for player "player_id"
             as a sequence of strings
         '''
-        return NotImplemented
+        raise NotImplementedError
 
     def get_boards(self):
         '''
@@ -95,8 +50,22 @@ class Referee:
         '''
         return [self.get_board(i + 1) for i in range(self.players_number)]
 
+    def interactive_board(self):
+        '''
+            prints an on screen representation of current board
+        '''
+        raise NotImplementedError
 
-class SequentialGameReferee(Referee):
+
+class SequentialGame(Game):
+    '''
+        abstract base class for sequential games
+    '''
+    turn_type = SEQUENTIAL
+
+    def __init__(self, players=2, random_seed=None):
+        super().__init__(players, random_seed)
+        self.turn_number = 0
 
     def execute_turn(self, player_id, move):
         '''
@@ -106,10 +75,14 @@ class SequentialGameReferee(Referee):
             n > 0 id of the winner
             -1 game draw
         '''
-        return NotImplemented
+        raise NotImplementedError
 
 
-class SimultanousGameReferee(Referee):
+class SimultanousGame(Game):
+    '''
+        abstract base class for simultaneous games
+    '''
+    turn_type = SIMULTANEOUS
 
     def execute_turn(self, moves):
         '''
@@ -119,21 +92,60 @@ class SimultanousGameReferee(Referee):
             n > 0 id of the winner
             -1 game draw
         '''
-        return NotImplemented
+        raise NotImplementedError
 
 
 class Match:
+    '''
+        structure class to manage comunication between a game "referee" and 2 or more players
+        ideally (but this is not implemented yet) these agents could be run asinchronically
+    '''
 
-    def __init__(self, game, players, random_order=True):
-        self.turn_number = 0
-        self.sub_turn_number = 0
-        self.game = game
+    def __init__(self, game_class, players, random_order=True):
         pl = self.players = list(players)
         if random_order:
             shuffle(pl)
-        self.referee = game.referee_class(pl)
+        self.referee = game_class(players)
+
+    def simultaneous_turn(self):
+        boards = self.referee.get_boards()
+        moves = []
+        for p, b in zip(self.players, boards):
+            for r in b:
+                m = p.listener.send(r)  # if input has multiple lines, only the last output is of interest
+            moves.append(m)
+        # TODO: gestire simultaneita' di esecuzione e valutare timeout
+        return self.referee.execute_turn(moves)
+
+    def sequential_turn(self):
+        for i, p in enumerate(self.players):
+            self.referee.turn_number += 1
+            i = i + 1
+            board = self.referee.get_board(i)
+            match_logger.debug('player %s to move', i)
+            if isinstance(p, IOPlayer):
+                self.referee.interactive_board()
+            for b in board:
+                m = p.listener.send(b)  # if input has multiple lines, only the last output is of interest
+            # TODO: valutare timeout
+            try:
+                state = self.referee.execute_turn(i, m)
+            except InvalidMove as e:
+                match_logger.warn('player %s lost due to invalid move:\n%s', i, e)
+                # TODO: questo funziona solo per due giocatori
+                state = (i % 2) + 1
+            if state != RUNNING:
+                # TODO: eventualmente gestire sequential pero' con parita' di turni per la vittoria
+                return state
+        return state
 
     def run(self):
+        if self.referee.turn_type == SIMULTANEOUS:
+            turn = self.simultaneous_turn
+        elif self.referee.turn_type == SEQUENTIAL:
+            turn = self.sequential_turn
+        else:
+            raise ValueError('unknown turn type of referee {}: {}', self.referee, self.referee.turn_type)
         boards = self.referee.setup()
         match_logger.info('starting data for player 1:\n%s', '\n'.join(boards[0]))
         for i in range(1, len(self.players)):
@@ -143,8 +155,10 @@ class Match:
 
         state = RUNNING
         while state == RUNNING:
-            state = self.game.turn(self.referee, self.players)
+            self.referee.round_number += 1
+            state = turn()
             match_logger.debug('state after turn %s: %s', self.referee.round_number, state)
         match_logger.info('game ending with state: %s', state)
+        if any(isinstance(p, IOPlayer) for p in self.players):
+            self.referee.interactive_board()
         return state
-

@@ -1,6 +1,6 @@
-from itertools import cycle
+import os
 
-from core.main import Referee, InvalidMove, DRAW, RUNNING, ref_logger
+from core.main import SequentialGame, InvalidMove, DRAW, RUNNING, ref_logger
 
 EMPTY = '.'
 SYMBOLS = [EMPTY, 'X', 'O']  # player_id parte da 1
@@ -10,12 +10,11 @@ LINES = [['A1', 'A2', 'A3'], ['B1', 'B2', 'B3'], ['C1', 'C2', 'C3'],
          ['A1', 'B2', 'C3'], ['A3', 'B2', 'C1']]
 
 
-class TicTacToe(Referee):
+class TicTacToe(SequentialGame):
 
     def __init__(self, players):
         super().__init__(players)
         self.board = dict.fromkeys((x + y for x in 'ABC' for y in '123'), EMPTY)
-        self.turn_number = 0
 
     def setup(self):
         ref_logger.info('starting game; board:\n%s', self.draw_board())
@@ -26,7 +25,6 @@ class TicTacToe(Referee):
         return [' '.join(b[r + str(c)] for c in range(1, 4)) for r in 'ABC']
 
     def execute_turn(self, player_id, move):
-        self.turn_number += 1
         b = self.board
         move = move.upper()
         try:
@@ -36,7 +34,7 @@ class TicTacToe(Referee):
         if occ != EMPTY:
             raise InvalidMove('received move {}, tile already occupied'.format(move))
         v = b[move] = SYMBOLS[player_id]
-        ref_logger.info('subturn %s; board:\n%s', self.turn_number, self.draw_board())
+        ref_logger.info('turn %s; board:\n%s', self.turn_number, self.draw_board())
         if player_id == self.players_number:
             self.round_number += 1
         if any(all(b[li] == v for li in line) for line in LINES):
@@ -52,4 +50,8 @@ class TicTacToe(Referee):
             'B   {b[B1]} | {b[B2]} | {b[B3]}\n' \
             '   ---+---+---\n' \
             'C   {b[C1]} | {b[C2]} | {b[C3]}\n'.format(b=self.board).replace(EMPTY, ' ')
+
+    def interactive_board(self):
+        os.system('clear')
+        print(self.draw_board())
 
