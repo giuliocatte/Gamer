@@ -46,7 +46,7 @@ class MiniMaxingCFPlayer(CFPlayer):
         move = node['move']
         try:
             y = board[move].index(0) - 1
-        except IndexError:
+        except (ValueError, IndexError):
             y = 6
         return check_victory(board, move, y, node['to_move'])
 
@@ -72,9 +72,12 @@ class MiniMaxingCFPlayer(CFPlayer):
     def terminal_function(node):
         board = node['board']
         move = node['move']
+        if move is None:
+            # state of the board BEFORE the move
+            return False
         try:
             y = board[move].index(0) - 1
-        except IndexError:
+        except (ValueError, IndexError):
             y = 6
         if check_victory(board, move, y, node['to_move']):
             return True
@@ -93,7 +96,7 @@ class MiniMaxingCFPlayer(CFPlayer):
                           value_function=valf, child_function=self.child_function,
                          terminal_function=self.terminal_function, depth=self.search_depth)
         logger.debug('bestmove: %s; bestvalue: %s', bestmove, bestvalue)
-        return bestmove['move']
+        return str(bestmove['move'] + 1)
 
 
 class TensorFlowCFPlayer(CFPlayer):
