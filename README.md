@@ -1,11 +1,18 @@
 # Gamer (a better name still to be found)
 
-Quando trovo la voglia scrivo anche questo file in inglese.
-Già buona parte delle docstring e dei commenti lo sono,
-ma ho finito le energie al riguardo.
+Little proof of concept framework to playtest AIs at various games.<br>
+Still very WIP.
+
+There is a Match class, where the game and the players are plugged in.
+So you can basically devise your own AI, and make it play against
+another AI, or even yourself.
+
+In full [codingame](https://www.codingame.com) fashion, I wanted
+players and the "referee" of the game to communicate with sequences
+strings, so that easily players could be external programs.
 
 I tried to write most of docstring and comments in english, but
-probably something in italian survived, so, if ever some english
+probably something in italian survived so, if ever some english
 speaking fellow reads this code: sorry pal.
 
 ## Requirements
@@ -26,19 +33,25 @@ I copypasted some [slices of code](https://github.com/DanielSlater/AlphaToe), an
 
 ## Usage
 
-For starters, you could run play.py from main directory.
+For starters, you could run
+```
+python3 play.py {gamename}
+```
+from main directory.
+Right now, the only implemented games are `ttt` for tic tac toe
+ and `c4` for connect four.
 It would ask some interactive input for the game configuration.
 Neural networks won't work until trained, so you will be getting an
 exception if you select them as an opponent.
 
 ### Network Training
 
-To train your tictactoe network, you could run:
+To train for instance your tictactoe network, you could run:
 ```
 python3 tictactoe/nn.py --train-with-minimax
 ```
 It will take a lot of hours, so maybe do it overnight (*and* the day after, probably).
-If you're just interested in making it work quick you could use:
+If you're just interested in making it work quickly you could use:
 ```
 python3 tictactoe/nn.py --train-with-random
 ```
@@ -53,7 +66,7 @@ python3 tictactoe/nn.py --corrective
 ```
 Still, AI isn't perfect, sometimes it goes for a draw when it could win.
 If you discover a way of training it that yields better results,
-please let me know. I'm not done with it yet. Probably i'll try mixing
+please let me know. I'm not done with it yet, probably i'll try mixing
 the AIs for is opponents, to reduce overfitting.
 
 Besides, if you are in the mood for doing a ton of games, you can

@@ -1,13 +1,10 @@
-import logging
 
 from core.players import RandomPlayer, IOPlayer, Player
-from core.lib import negamax, minimax, shuffling_negamax, normalize
+from core.lib import negamax, minimax, shuffling_negamax
+from core.main import player_logger
 
 from .referee import LINES, SYMBOLS, EMPTY
 from .nn import get_callable_from_saved_network, DEFAULT_PATH
-
-
-logger = logging.getLogger('tictactoe.players')
 
 inf = float('inf')
 
@@ -35,7 +32,7 @@ class RandomTTTPlayer(RandomPlayer, TTTPlayer):
             for c, cell in zip('123', row.split()):
                 if cell == EMPTY:
                     a.append(r + c)
-        logger.debug('available_moves: %s', self.available_moves)
+        player_logger.debug('available_moves: %s', self.available_moves)
 
     def compute_available_moves(self):
         return self.available_moves
@@ -121,7 +118,7 @@ class MiniMaxingTTTPlayer(TTTPlayer):
                 b[k] = cell
                 if cell == EMPTY:
                     a.append(k)
-        logger.debug('board state: %s; available moves: %s;', b, a)
+        player_logger.debug('board state: %s; available moves: %s;', b, a)
 
     def compute_move(self):
         valf = [
@@ -142,7 +139,7 @@ class MiniMaxingTTTPlayer(TTTPlayer):
         bestvalue, bestmove = algo({'board': self.board, 'to_move': self.id, 'move': None},
                           value_function=valf, child_function=self.child_function,
                          terminal_function=self.terminal_function, depth=self.search_depth)
-        logger.debug('bestmove: %s; bestvalue: %s', bestmove, bestvalue)
+        player_logger.debug('bestmove: %s; bestvalue: %s', bestmove, bestvalue)
         return bestmove['move']
 
 
@@ -170,6 +167,6 @@ class TensorFlowTTTPlayer(TTTPlayer):
 
     def compute_move(self):
         outp = self.nn(self.network_input)
-        logger.debug('nn output: %s', outp)
+        player_logger.debug('nn output: %s', outp)
         move = max((el, i) for i, el in enumerate(outp) if self.network_input[i] == 0)[1]
         return 'ABC'[move // 3] + '123'[move % 3]

@@ -6,6 +6,7 @@ IOPLAYER_CLASS = IOCFPlayer
 
 REFEREE_CLASS = ConnectFour
 
+
 AIS = [{
     'caption': 'minimax',
     'class': MiniMaxingCFPlayer,
@@ -19,14 +20,16 @@ AIS = [{
             'considers also your next move',
             'plans two moves ahead',
             '...'
-        ]}, {
-        'name': 'evaluation_level',
-        'caption': 'evaluation level',
-        'default': 0,
-        'values': [
-            'only considers winning moves',
-            'will try to build and block partial lines'
-        ]}]
+        ]
+    # }, {
+    #     'name': 'evaluation_level',
+    #     'caption': 'evaluation level',
+    #     'default': 0,
+    #     'values': [
+    #         'only considers winning moves',
+    #         'will try to build and block partial lines'
+    #     ]
+    }]
 }, {
     'caption': 'random',
     'class': RandomCFPlayer,

@@ -1,3 +1,9 @@
+'''
+    a modified version of some methods of https://github.com/DanielSlater/AlphaToe
+    Copyright (c) 2016 Daniel Slater
+    under the MIT License
+'''
+
 import collections
 import os
 import random
@@ -130,7 +136,7 @@ def stochastic_move(session, input_layer, output_layer, board, side=1, valid_onl
         if I default valid_only=True, suddently the win ratio drops instead of raising.
         boh
     '''
-    board_tensor = (np.array(board) * side).reshape(1, 9)
+    board_tensor = (np.array(board) * side).reshape(1, len(board))
     probabilities = session.run(output_layer, feed_dict={input_layer: board_tensor})[0]
 
     if valid_only:

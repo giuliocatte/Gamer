@@ -2,20 +2,33 @@ import os
 
 from core.main import SequentialGame, InvalidMove, DRAW, RUNNING, ref_logger
 import colorama
-colorama.init()  # this should make it work for windows
+colorama.init()  # this should be mandatory for windows
 
 COLORS = ['YELLOW', 'RED']
 PIECE = "◉"
 
 
-def check_victory(board, x, y, player_value):
+def check_victory(board, x):
+    '''
+        check if move x has been victorious
+    '''
+    col = board[x]
+    if col[-1]:
+        y = 5
+    else:
+        y = col.index(0) - 1
+    try:
+        move_value = col[y]
+    except:
+        print('errore:', board, x, col, y)
+        raise
     for dx, dy in ((1, 0), (0, 1), (-1, 1), (1, 1)):
         pieces = 1
         for side in (-1, 1):
             for dist in range(1, 4):
                 cx = x + dist * dx * side
                 cy = y + dist * dy * side
-                if 0 <= cx <= 6 and 0 <= cy <= 5 and board[cx][cy] == player_value:
+                if 0 <= cx <= 6 and 0 <= cy <= 5 and board[cx][cy] == move_value:
                     pieces += 1
                 else:
                     break
@@ -28,8 +41,8 @@ class ConnectFour(SequentialGame):
     '''
         board is a list of 7 columns; each column is a list of 7 cells, where position 0 is bottom
 
-        internally, players are 1 and -1, 0 are empty spaces
-        so a player color is COLORS[(player_value + 2) % 3] or COLORS[player_id - 1]
+        internally, players are 1 and 2, and board is converted when outputting to players
+        to 1 for "you" and -1 for "opponent". 0 is empty, both internally and in the output
 
         moves are numbers from 1 to 7, so internally there's always a -1 shift
     '''
@@ -43,7 +56,8 @@ class ConnectFour(SequentialGame):
 
     def get_board(self, player_id):
         b = self.board
-        return [' '.join(str(b[c][r]) for r in range(6)) for c in range(7)]
+        outmap = {player_id: '1', (player_id % 2) + 1: '-1', 0: '0'}
+        return [' '.join(outmap[b[c][r]] for r in range(6)) for c in range(7)]
 
     def execute_turn(self, player_id, strmove):
         b = self.board
@@ -58,13 +72,11 @@ class ConnectFour(SequentialGame):
             row_ind = col.index(0)
         except ValueError:
             raise InvalidMove('received move {}, column already full'.format(move))
-        player_value = 1 if player_id == 1 else -1
-        col[row_ind] = player_value
-        if player_id == self.players_number:
-            self.round_number += 1
+        # updating board
+        col[row_ind] = player_id
 
         # searching for victory
-        if check_victory(b, move, row_ind, player_value):
+        if check_victory(b, move):
             return player_id
 
         if all(c[-1] for c in b):
@@ -73,6 +85,7 @@ class ConnectFour(SequentialGame):
 
     def interactive_board(self, lattice=True):
         os.system('clear')
+        print()
         b = self.board
         for row in range(5, -1, -1):
             print(colorama.Fore.BLACK + ' |', end='')
@@ -80,7 +93,7 @@ class ConnectFour(SequentialGame):
                 if col[row] == 0:
                     print(' ', end='')
                 else:
-                    print(getattr(colorama.Fore, COLORS[(col[row] + 2) % 3]) + PIECE, end='')
+                    print(getattr(colorama.Fore, COLORS[col[row] - 1]) + PIECE, end='')
                 if lattice and i != 6:
                     print(colorama.Fore.BLACK + '|', end='')
             print(colorama.Fore.BLACK + '|')

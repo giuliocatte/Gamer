@@ -1,10 +1,10 @@
-import logging
 
 from core.players import RandomPlayer, IOPlayer, Player
 from core.lib import shuffling_negamax
+from core.main import player_logger
 from .referee import check_victory
+from .nn import get_callable_from_saved_network, DEFAULT_PATH
 
-logger = logging.getLogger('tictactoe.players')
 
 inf = float('inf')
 
@@ -30,7 +30,7 @@ class RandomCFPlayer(RandomPlayer, CFPlayer):
         for i, col in enumerate(inp):
             if col[-1] == '0':
                 a.append(str(i + 1))
-        logger.debug('available_moves: %s', self.available_moves)
+        player_logger.debug('available_moves: %s', self.available_moves)
 
     def compute_available_moves(self):
         return self.available_moves
@@ -44,11 +44,9 @@ class MiniMaxingCFPlayer(CFPlayer):
     def dumb_value_function(self, node):
         board = node['board']
         move = node['move']
-        try:
-            y = board[move].index(0) - 1
-        except (ValueError, IndexError):
-            y = 6
-        return check_victory(board, move, y, node['to_move'])
+        value = -node['to_move'] * inf if check_victory(board, move) else 0
+        player_logger.debug('evaluated move %s on board %s: value %s', move, board, value)
+        return value
 
     def some_heuristics(self, node):
         raise NotImplementedError
@@ -75,11 +73,7 @@ class MiniMaxingCFPlayer(CFPlayer):
         if move is None:
             # state of the board BEFORE the move
             return False
-        try:
-            y = board[move].index(0) - 1
-        except (ValueError, IndexError):
-            y = 6
-        if check_victory(board, move, y, node['to_move']):
+        if check_victory(board, move):
             return True
         if all(c[-1] != 0 for c in board):
             return True
@@ -92,10 +86,10 @@ class MiniMaxingCFPlayer(CFPlayer):
 
     def compute_move(self):
         valf = [self.dumb_value_function, self.some_heuristics][self.evaluation_level]
-        bestvalue, bestmove = shuffling_negamax({'board': self.board, 'to_move': 1 if self.id == 1 else -1, 'move': None},
+        bestvalue, bestmove = shuffling_negamax({'board': self.board, 'to_move': 1, 'move': None},
                           value_function=valf, child_function=self.child_function,
                          terminal_function=self.terminal_function, depth=self.search_depth)
-        logger.debug('bestmove: %s; bestvalue: %s', bestmove, bestvalue)
+        player_logger.debug('bestmove: %s; bestvalue: %s', bestmove, bestvalue)
         return str(bestmove['move'] + 1)
 
 
@@ -107,7 +101,7 @@ class TensorFlowCFPlayer(CFPlayer):
         since this appears to be some sort of a standard, in the grid 1 represents my pieces, -1 opponent pieces,
         and 0 empty cells
     '''
-    saved_nn_path = ''
+    saved_nn_path = DEFAULT_PATH
 
     def setup(self, player_id, inp):
         super().setup(player_id, inp)
@@ -116,10 +110,14 @@ class TensorFlowCFPlayer(CFPlayer):
     def process_turn_input(self, inp):
         a = self.available_moves = []
         n = self.network_input = []
-        raise NotImplementedError
+        for i, col in enumerate(inp):
+            vals = [int(v) for v in col.split()]
+            if vals[-1] == 0:
+                a.append(i)
+            n.extend(vals)
 
     def compute_move(self):
         outp = self.nn(self.network_input)
-        logger.debug('nn output: %s', outp)
+        player_logger.debug('nn output: %s', outp)
         move = max((el, i) for i, el in enumerate(outp) if i in self.available_moves)[1]
         return str(move + 1)

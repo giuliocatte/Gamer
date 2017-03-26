@@ -20,7 +20,7 @@ except ImportError:
     from core.nn_trainer import train_policy_gradients
 
 
-DEFAULT_PATH = 'current_network.p'
+DEFAULT_PATH = 'tictactoe/current_network.p'
 HIDDEN_LAYERS = (100, 100, 100, 100)
 
 

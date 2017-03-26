@@ -1,7 +1,9 @@
 '''
     helpers for neural networks
 
-    most of this is copied by https://github.com/DanielSlater/AlphaToe
+    mostly copied from https://github.com/DanielSlater/AlphaToe
+    Copyright (c) 2016 Daniel Slater
+    under the MIT License
 
     TODO: quando salvo e carico suppongo di avere le informazioni di com'e' fatta la nn da fuori,
     ma non e' necessario, potrei inserire anche quelle nel salvataggio...
@@ -99,23 +101,3 @@ def load_network(session, tf_variables, file_path):
         raise ValueError("""Tried to load network file %s with different architecture from the in memory network.
 Error was %s
 Either delete the network file to train a new network from scratch or change the in memory network to match that dimensions of the one in the file""" % (file_path, ex))
-
-
-def give_saved_network_a_shot(board, file_path, input_nodes, hidden_nodes, output_nodes=None):
-    '''
-        calls saved network to evaluate a single board
-    '''
-    output_nodes = output_nodes or input_nodes
-    with tf.Session() as session:
-        try:
-            session.run(tf.initialize_all_variables())
-        except AttributeError:
-            # la documentazione dice che quello sopra e' deprecato e di usare questo, ma a quanto pare questo non esiste
-            # nella mia versione di tf, almeno
-            session.run(tf.global_variables_initializer())
-
-        input_layer, output_layer, variables = create_network(input_nodes, hidden_nodes=hidden_nodes,
-                                                                output_nodes=output_nodes)
-        load_network(session, variables, file_path)
-
-

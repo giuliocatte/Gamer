@@ -29,8 +29,8 @@ def test_game(mod):
     print('2. go second')
     ord = int(input() or 0)
     players = [
-            mod.IOPLAYER_CLASS(),
-            ai['class'](**kw)
+        mod.IOPLAYER_CLASS(),
+        ai['class'](**kw)
     ]
     if ord:
         rand = False

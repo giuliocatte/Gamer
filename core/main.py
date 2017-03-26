@@ -97,12 +97,13 @@ class SimultanousGame(Game):
 
 class Match:
     '''
-        structure class to manage comunication between a game "referee" and 2 or more players
+        structure class to manage comunication between a game "referee" and 2 or more player agents
         ideally (but this is not implemented yet) these agents could be run asinchronically
     '''
 
-    def __init__(self, game_class, players, random_order=True):
+    def __init__(self, game_class, players, random_order=True, interactive=None):
         pl = self.players = list(players)
+        self.interactive = any(isinstance(p, IOPlayer) for p in players) if interactive is None else interactive
         if random_order:
             shuffle(pl)
         self.referee = game_class(players)
@@ -123,7 +124,8 @@ class Match:
             i = i + 1
             board = self.referee.get_board(i)
             match_logger.debug('player %s to move', i)
-            if isinstance(p, IOPlayer):
+            #if isinstance(p, IOPlayer) and self.interactive:
+            if self.interactive:
                 self.referee.interactive_board()
             for b in board:
                 m = p.listener.send(b)  # if input has multiple lines, only the last output is of interest
@@ -159,6 +161,6 @@ class Match:
             state = turn()
             match_logger.debug('state after turn %s: %s', self.referee.round_number, state)
         match_logger.info('game ending with state: %s', state)
-        if any(isinstance(p, IOPlayer) for p in self.players):
+        if self.interactive:
             self.referee.interactive_board()
         return state
