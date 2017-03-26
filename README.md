@@ -8,7 +8,7 @@ So you can basically devise your own AI, and make it play against
 another AI, or even yourself.
 
 In full [codingame](https://www.codingame.com) fashion, I wanted
-players and the "referee" of the game to communicate with sequences
+players and the "referee" of the game to communicate with sequences of
 strings, so that easily players could be external programs.
 
 I tried to write most of docstring and comments in english, but
@@ -24,11 +24,11 @@ asyncio, so 3.4+ will be required.
 As non-standard dependencies, I use tensorflow (I used the dumbest
 installation for macos without gpu), numpy (which is actually
 required for tensorflow, so I'm not sure I should write it here),
-colorama (right now just for Connect4), and python fire for
-firing the neural network trainers.
+colorama (right now just for Connect Four), and Python Fire for
+CLI.
 
 Many thanks to Daniel Slater from whom
-I copypasted some [slices of code](https://github.com/DanielSlater/AlphaToe), and learned some techniques
+I copypasted some [pieces of code](https://github.com/DanielSlater/AlphaToe), and learned some techniques
 (here's an excellent [youtube video](https://www.youtube.com/watch?v=Meb5hApAnj4)).
 
 ## Usage
