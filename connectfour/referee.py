@@ -17,11 +17,7 @@ def check_victory(board, x):
         y = 5
     else:
         y = col.index(0) - 1
-    try:
-        move_value = col[y]
-    except:
-        print('errore:', board, x, col, y)
-        raise
+    move_value = col[y]
     for dx, dy in ((1, 0), (0, 1), (-1, 1), (1, 1)):
         pieces = 1
         for side in (-1, 1):

@@ -39,7 +39,7 @@ class RandomCFPlayer(RandomPlayer, CFPlayer):
 class MiniMaxingCFPlayer(CFPlayer):
 
     search_depth = 2
-    evaluation_level = 0
+    evaluation_level = 1
 
     def dumb_value_function(self, node):
         board = node['board']
@@ -49,7 +49,38 @@ class MiniMaxingCFPlayer(CFPlayer):
         return value
 
     def some_heuristics(self, node):
-        raise NotImplementedError
+        board = node['board']
+        x = node['move']
+        if check_victory(board, x):
+            return -node['to_move'] * inf
+        col = board[x]
+        if col[-1]:
+            y = 5
+        else:
+            y = col.index(0) - 1
+        move_value = col[y]
+        pieces = 0
+        for dx, dy in ((1, 0), (0, 1), (-1, 1), (1, 1)):
+            p = 1
+            l = 1
+            for side in (-1, 1):
+                if (dx, dy) == (0, 1) and side == 1:
+                    continue  # dont count lines directed up
+                for dist in range(1, 4):
+                    cx = x + dist * dx * side
+                    cy = y + dist * dy * side
+                    if 0 <= cx <= 6 and 0 <= cy <= 5:
+                        if board[cx][cy] == move_value:
+                            p += 1
+                        elif board[cx][cy] == 0:
+                            l += 1
+                        else:
+                            break
+                    else:
+                        break
+            if l >= 4:
+                pieces += p ** 2
+        return -node['to_move'] * pieces
 
     @staticmethod
     def child_function(node):

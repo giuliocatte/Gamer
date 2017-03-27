@@ -21,14 +21,14 @@ AIS = [{
             'plans two moves ahead',
             '...'
         ]
-    # }, {
-    #     'name': 'evaluation_level',
-    #     'caption': 'evaluation level',
-    #     'default': 0,
-    #     'values': [
-    #         'only considers winning moves',
-    #         'will try to build and block partial lines'
-    #     ]
+    }, {
+        'name': 'evaluation_level',
+        'caption': 'evaluation level',
+        'default': 1,
+        'values': [
+            'only considers winning moves',
+            'will try to build and block partial lines'
+        ]
     }]
 }, {
     'caption': 'random',
