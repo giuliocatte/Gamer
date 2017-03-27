@@ -44,7 +44,7 @@ def play_c4_game(mover1, mover2):
     '''
     board = np.array([0] * 42)
     for plid, mover in cycle(zip((1, -1), (mover1, mover2))):
-        move = mover(board, plid)
+        move = mover(board * plid, plid)
         board = board.reshape(7, 6)
         if board[move][-1]:
             return -plid  # fail due to invalid move
@@ -99,7 +99,7 @@ class Trainer:
             return int(m) - 1
 
         print('start', datetime.now())
-        p = MiniMaxingCFPlayer(search_depth=2)
+        p = MiniMaxingCFPlayer(search_depth=4)
         p.setup(1, ['YELLOW'])  # that input isn't useful, but calling setup is
 
         train_c4_policy_gradient(oppo, 1000000, self)

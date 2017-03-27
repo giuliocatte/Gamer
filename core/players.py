@@ -26,7 +26,7 @@ class Player:
         while True:
             inp = []
             for i in range(self.turn_lines):
-                v = yield outp
+                v = yield outp  # same output is yielded n times, referee will consider only the last one
                 inp.append(v)
             self.process_turn_input(inp)
             outp = self.compute_move()

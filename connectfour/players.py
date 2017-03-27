@@ -118,6 +118,6 @@ class TensorFlowCFPlayer(CFPlayer):
 
     def compute_move(self):
         outp = self.nn(self.network_input)
-        player_logger.debug('nn output: %s', outp)
+        player_logger.info('nn output: %s', outp)
         move = max((el, i) for i, el in enumerate(outp) if i in self.available_moves)[1]
         return str(move + 1)

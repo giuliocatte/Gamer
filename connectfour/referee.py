@@ -83,8 +83,9 @@ class ConnectFour(SequentialGame):
             return DRAW
         return RUNNING
 
-    def interactive_board(self, lattice=True):
-        os.system('clear')
+    def interactive_board(self, lattice=True, clear=True):
+        if clear:
+            os.system('clear')
         print()
         b = self.board
         for row in range(5, -1, -1):
