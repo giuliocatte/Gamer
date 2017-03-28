@@ -34,7 +34,6 @@ class TicTacToe(SequentialGame):
         if occ != EMPTY:
             raise InvalidMove('received move {}, tile already occupied'.format(move))
         v = b[move] = SYMBOLS[player_id]
-        ref_logger.info('turn %s; board:\n%s', self.turn_number, self.draw_board())
         if player_id == self.players_number:
             self.round_number += 1
         if any(all(b[li] == v for li in line) for line in LINES):
