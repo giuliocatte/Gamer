@@ -7,9 +7,16 @@ class Player:
     turn_lines = 1
 
     def __init__(self, **kw):
-        self.listener = self.coroutine()
+        self.arguments = kw
+        self.reset()
         for k, v in kw.items():
             setattr(self, k, v)
+
+    def reset(self):
+        '''
+            executing this method resets the player at the starting state
+        '''
+        self.listener = self.coroutine()
 
     def setup(self, player_id, inp):
         self.id = player_id
@@ -36,6 +43,9 @@ class Player:
             updates internal state for a turn input
         '''
         pass
+
+    def __str__(self):
+        return '{}({})'.format(self.__class__.__name__, ', '.join('{}={}'.format(*i) for i in self.arguments.items()))
 
 
 class IOPlayer(Player):
