@@ -52,6 +52,5 @@ class TicTacToe(SequentialGame):
             'C   {b[C1]} | {b[C2]} | {b[C3]}\n'.format(b=self.board).replace(EMPTY, ' ')
 
     def interactive_board(self):
-        os.system('clear')
         print(self.draw_board())
 
