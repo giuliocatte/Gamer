@@ -102,7 +102,7 @@ class Trainer:
         p = MiniMaxingCFPlayer(search_depth=2)
         p.setup(1, ['YELLOW'])  # that input isn't useful, but calling setup is
 
-        train_c4_policy_gradient(oppo, 500000, self)
+        train_c4_policy_gradient(oppo, 1000000, self)
         print('end', datetime.now())
 
     def train_with_random(self):
