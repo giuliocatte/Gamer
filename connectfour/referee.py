@@ -48,7 +48,7 @@ class ConnectFour(SequentialGame):
 
     def setup(self):
         ref_logger.info('starting game')
-        return COLORS
+        return [[c] for c in COLORS]
 
     def get_board(self, player_id):
         b = self.board

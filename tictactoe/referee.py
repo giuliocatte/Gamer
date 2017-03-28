@@ -18,7 +18,7 @@ class TicTacToe(SequentialGame):
 
     def setup(self):
         ref_logger.info('starting game; board:\n%s', self.draw_board())
-        return SYMBOLS[1:]
+        return [[s] for s in SYMBOLS[1:]]
 
     def get_board(self, player_id):
         b = self.board
