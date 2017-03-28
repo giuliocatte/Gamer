@@ -126,11 +126,10 @@ class Match:
             i = i + 1
             board = self.referee.get_board(i)
             match_logger.debug('player %s to move', i)
-            #if isinstance(p, IOPlayer) and self.interactive:
             if self.interactive:
                 if self.clear_board:
                     os.system('clear')
-                self.referee.interactive_board(clear=self.clear_board)
+                self.referee.interactive_board()
             for b in board:
                 m = p.listener.send(b)  # if input has multiple lines, only the last output is of interest
             # TODO: valutare timeout
