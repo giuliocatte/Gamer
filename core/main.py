@@ -168,5 +168,5 @@ class Match:
         if self.interactive:
             if self.clear_board:
                 os.system('clear')
-            self.referee.interactive_board(clear=self.clear_board)
+            self.referee.interactive_board()
         return state
