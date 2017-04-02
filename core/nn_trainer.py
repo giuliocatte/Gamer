@@ -26,7 +26,8 @@ except ImportError:
 
 def train_policy_gradients(nn_parameters, move_shape, match_func, opponent_func,
                            nn_path=None, nn_write_path=None, number_of_games=10000,
-                           print_results_every=1000, learn_rate=1e-4, batch_size=100, randomize_first_player=True):
+                           print_results_every=1000, learn_rate=1e-4, batch_size=100,
+                           randomize_first_player=True, log_games=False):
     '''
         Train a network using policy gradients
 
@@ -73,16 +74,22 @@ def train_policy_gradients(nn_parameters, move_shape, match_func, opponent_func,
             mini_batch_moves.append(move)
             return move.argmax()  # returns move as an index
 
-        for episode_number in range(1, number_of_games):
+        for episode_number in range(1, number_of_games + 1):
             # randomize if going first or second
             if (not randomize_first_player) or bool(random.getrandbits(1)):
+                if log_games:
+                    print('playing game', episode_number, 'nn first')
                 reward = match_func(make_training_move, opponent_func)
             else:
+                if log_games:
+                    print('playing game', episode_number, 'nn second')
                 reward = -match_func(opponent_func, make_training_move)
             results.append(reward)
 
             # we scale here so winning quickly is better winning slowly and loosing slowly better than loosing quick
             last_game_length = len(mini_batch_board_states) - len(mini_batch_rewards)
+            if log_games:
+                print('reward is', reward, 'game length', last_game_length)
 
             reward /= float(last_game_length)
 

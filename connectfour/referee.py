@@ -94,9 +94,8 @@ class ConnectFour(SequentialGame):
             print(colorama.Fore.BLACK + '|')
             if lattice:
                  print(colorama.Fore.BLACK + ' +-+-+-+-+-+-+-+')
-        if not lattice:
-            print(colorama.Fore.BLACK + ' +-------+')
         if lattice:
             print(colorama.Fore.BLACK + '  1 2 3 4 5 6 7')
         else:
+            print(colorama.Fore.BLACK + ' +-------+')
             print(colorama.Fore.BLACK + '  1234567')
