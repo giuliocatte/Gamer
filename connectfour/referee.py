@@ -1,4 +1,3 @@
-import os
 
 from core.main import SequentialGame, InvalidMove, DRAW, RUNNING, ref_logger
 import colorama

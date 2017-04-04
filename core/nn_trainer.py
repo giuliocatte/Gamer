@@ -1,12 +1,12 @@
 '''
-    a modified version of some methods of https://github.com/DanielSlater/AlphaToe
-    Copyright (c) 2016 Daniel Slater
-    under the MIT License
+    a modified version of some methods
+    of https://github.com/DanielSlater/AlphaToe (Copyright (c) 2016 Daniel Slater under the MIT License)
 '''
 
 import collections
 import os
 import random
+import signal
 
 import numpy as np
 import tensorflow as tf
@@ -22,6 +22,18 @@ except ImportError:
     sys.path.append(parentdir)
     from core.lib import normalize
     from core.nn import create_network, load_network, save_network
+
+
+_closing = False
+
+
+def kill_handler(signum, frame):
+    print('received stop signal, terminating mini-batch')
+    global _closing
+    _closing = True
+
+
+signal.signal(signal.SIGINT, kill_handler)
 
 
 def train_policy_gradients(nn_parameters, move_shape, match_func, opponent_func,
@@ -46,7 +58,7 @@ def train_policy_gradients(nn_parameters, move_shape, match_func, opponent_func,
         mi chiedo se ci sia modo di fargli mangiare un oggetto di classe Game e uno di classe Player e fargli calcolare
         da quello play_game e opponent_func.... il problema e' che quelli parlano stringhe, c'e' da fare un bello strato
         di interfaccia... ma forse e' possibile.. l'unica cosa e' la lunghezza della mossa che la dovro' mettere
-        in un parametro?
+        in un parametro? ma poi le performance?
     '''
     nn_write_path = nn_write_path or nn_path
     reward_placeholder = tf.placeholder("float", shape=(None,))
@@ -86,7 +98,7 @@ def train_policy_gradients(nn_parameters, move_shape, match_func, opponent_func,
                 reward = -match_func(opponent_func, make_training_move)
             results.append(reward)
 
-            # we scale here so winning quickly is better winning slowly and loosing slowly better than loosing quick
+            # we scale here so winning quickly is better winning slowly and losing slowly better than losing quick
             last_game_length = len(mini_batch_board_states) - len(mini_batch_rewards)
             if log_games:
                 print('reward is', reward, 'game length', last_game_length)
@@ -115,6 +127,8 @@ def train_policy_gradients(nn_parameters, move_shape, match_func, opponent_func,
                 del mini_batch_board_states[:]
                 del mini_batch_moves[:]
                 del mini_batch_rewards[:]
+                if _closing:
+                    break
 
             if episode_number % print_results_every == 0:
                 print("episode: %s win_rate: %s" % (episode_number, _win_rate(print_results_every, results)))

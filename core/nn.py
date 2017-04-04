@@ -1,9 +1,7 @@
 '''
     helpers for neural networks
 
-    mostly copied from https://github.com/DanielSlater/AlphaToe
-    Copyright (c) 2016 Daniel Slater
-    under the MIT License
+    mostly copied from https://github.com/DanielSlater/AlphaToe (Copyright (c) 2016 Daniel Slater under the MIT License)
 
     TODO: quando salvo e carico suppongo di avere le informazioni di com'e' fatta la nn da fuori,
     ma non e' necessario, potrei inserire anche quelle nel salvataggio...
@@ -98,6 +96,7 @@ def load_network(session, tf_variables, file_path):
             session.run(tf_variable.assign(value))
     except ValueError as ex:
         # TODO: maybe raise custom exception
-        raise ValueError("""Tried to load network file %s with different architecture from the in memory network.
-Error was %s
-Either delete the network file to train a new network from scratch or change the in memory network to match that dimensions of the one in the file""" % (file_path, ex))
+        raise ValueError('Tried to load network file %s with different architecture from the in memory network.\n'
+                         'Error was %s\n'
+                         'Either delete the network file to train a new network from scratch or change the in '
+                         'memory network to match that dimensions of the one in the file' % (file_path, ex))
