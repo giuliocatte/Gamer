@@ -1,7 +1,7 @@
 
 from core.main import SequentialGame, InvalidMove, DRAW, RUNNING, ref_logger
 import colorama
-colorama.init()  # this should be mandatory for windows
+colorama.init(autoreset=True)
 
 COLORS = ['YELLOW', 'RED']
 PIECE = "◉"
@@ -82,19 +82,19 @@ class ConnectFour(SequentialGame):
         print()
         b = self.board
         for row in range(5, -1, -1):
-            print(colorama.Fore.BLACK + ' |', end='')
+            print(' |', end='')
             for i, col in enumerate(b):
                 if col[row] == 0:
                     print(' ', end='')
                 else:
                     print(getattr(colorama.Fore, COLORS[col[row] - 1]) + PIECE, end='')
                 if lattice and i != 6:
-                    print(colorama.Fore.BLACK + '|', end='')
-            print(colorama.Fore.BLACK + '|')
+                    print('|', end='')
+            print('|')
             if lattice:
-                 print(colorama.Fore.BLACK + ' +-+-+-+-+-+-+-+')
+                 print(' +-+-+-+-+-+-+-+')
         if lattice:
-            print(colorama.Fore.BLACK + '  1 2 3 4 5 6 7')
+            print('  1 2 3 4 5 6 7')
         else:
-            print(colorama.Fore.BLACK + ' +-------+')
-            print(colorama.Fore.BLACK + '  1234567')
+            print(' +-------+')
+            print('  1234567')
