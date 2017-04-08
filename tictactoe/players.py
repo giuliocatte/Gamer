@@ -40,10 +40,13 @@ class RandomTTTPlayer(RandomPlayer, TTTPlayer):
 
 class MiniMaxingTTTPlayer(TTTPlayer):
 
-    algorithm = 'negamax+'
-
     search_depth = 2
     evaluation_level = 2
+    value_functions = [
+            'dumb_value_function',
+            'slightly_better_value_function',
+            'some_heuristics'
+    ]
 
     def dumb_value_function(self, node):
         board = node['board']
@@ -119,28 +122,6 @@ class MiniMaxingTTTPlayer(TTTPlayer):
                 if cell == EMPTY:
                     a.append(k)
         player_logger.debug('board state: %s; available moves: %s;', b, a)
-
-    def compute_move(self):
-        valf = [
-            self.dumb_value_function,
-            self.slightly_better_value_function,
-            self.some_heuristics
-        ][self.evaluation_level]
-        algo = {'minimax': minimax,
-                'negamax': negamax,
-                'negamax+': shuffling_negamax}[self.algorithm]
-
-        # # TODO: togliere
-        # if len(self.available_moves) == 9:
-        #     return 'C1'
-        # if len(self.available_moves) == 7:
-        #     return 'A1'
-
-        bestvalue, bestmove = algo({'board': self.board, 'to_move': self.id, 'move': None},
-                          value_function=valf, child_function=self.child_function,
-                         terminal_function=self.terminal_function, depth=self.search_depth)
-        player_logger.debug('bestmove: %s; bestvalue: %s', bestmove, bestvalue)
-        return bestmove['move']
 
 
 class TensorFlowTTTPlayer(TTTPlayer):

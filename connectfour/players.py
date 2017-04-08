@@ -1,5 +1,5 @@
 
-from core.players import RandomPlayer, IOPlayer, Player
+from core.players import RandomPlayer, IOPlayer, Player, MiniMaxingPlayer
 from core.lib import shuffling_negamax
 from core.main import player_logger
 from .referee import check_victory
@@ -36,19 +36,23 @@ class RandomCFPlayer(RandomPlayer, CFPlayer):
         return self.available_moves
 
 
-class MiniMaxingCFPlayer(CFPlayer):
+class MiniMaxingCFPlayer(MiniMaxingPlayer, CFPlayer):
 
     search_depth = 2
     evaluation_level = 1
+    value_functions = ['dumb_value_function', 'some_heuristics']
+    fixed_id = 1
 
-    def dumb_value_function(self, node):
+    @staticmethod
+    def dumb_value_function(node):
         board = node['board']
         move = node['move']
         value = -node['to_move'] * inf if check_victory(board, move) else 0
         player_logger.debug('evaluated move %s on board %s: value %s', move, board, value)
         return value
 
-    def some_heuristics(self, node):
+    @staticmethod
+    def some_heuristics(node):
         board = node['board']
         x = node['move']
         if check_victory(board, x):
@@ -114,14 +118,6 @@ class MiniMaxingCFPlayer(CFPlayer):
         b = self.board = []
         for col in inp:
             b.append([int(v) for v in col.split()])
-
-    def compute_move(self):
-        valf = [self.dumb_value_function, self.some_heuristics][self.evaluation_level]
-        bestvalue, bestmove = shuffling_negamax({'board': self.board, 'to_move': 1, 'move': None},
-                          value_function=valf, child_function=self.child_function,
-                         terminal_function=self.terminal_function, depth=self.search_depth)
-        player_logger.debug('bestmove: %s; bestvalue: %s', bestmove, bestvalue)
-        return str(bestmove['move'] + 1)
 
 
 class TensorFlowCFPlayer(CFPlayer):

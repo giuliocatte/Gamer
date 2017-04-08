@@ -1,7 +1,16 @@
 from random import choice
 
+from core import lib
+from core.main import player_logger
+
 
 class Player:
+    '''
+        Abstract base class for AIs
+        most of times the only methods needed to extend are:
+        - process_turn_input, called each turn with the game state input from the referee
+        - compute_move, called each turn to have the AI output move for the referee
+    '''
 
     setup_lines = 1
     turn_lines = 1
@@ -14,7 +23,7 @@ class Player:
 
     def reset(self):
         '''
-            executing this method resets the player at the starting state
+            executing this method puts the player at the starting state
         '''
         self.listener = self.coroutine()
 
@@ -26,7 +35,7 @@ class Player:
         '''
             given the input for a turn as a list of turn_lines string, computes the move and return it as a string
         '''
-        return NotImplemented
+        raise NotImplementedError
 
     def coroutine(self):
         outp = None
@@ -42,7 +51,7 @@ class Player:
         '''
             updates internal state for a turn input
         '''
-        pass
+        raise NotImplementedError
 
     def __str__(self):
         return '{}({})'.format(self.__class__.__name__, ', '.join('{}={}'.format(*i) for i in self.arguments.items()))
@@ -82,3 +91,49 @@ class RandomPlayer(Player):
     def compute_move(self):
         mv = self.compute_available_moves()
         return choice(mv)
+
+
+class MiniMaxingPlayer(Player):
+    '''
+        abstract base class for a player based on a minimax algorithm
+        the "node" for the minimax is a dictionary
+            {'board': <representation of the board>, 'to_move': <id of the player to move>, 'move': <last move>}
+
+        if the board is "rotated towards the player" (i.e. it should behave like if it was player 1), class attribute
+        fixed_id should be set at 1.
+
+        several value functions can be implemented, writing the method name in the class list value_functions
+        attribute "evaluation_level" will determine which one is used (index of that list)
+    '''
+
+    search_depth = 4  # for some reason, even numbers perform way better
+    value_functions = []
+    evaluation_level = 0
+    algorithm = 'shuffling_negamax'
+    fixed_id = None
+
+    @staticmethod
+    def child_function(node):
+        '''
+           yields all the nodes reachable from the one passed
+        '''
+        raise NotImplementedError
+
+    @staticmethod
+    def terminal_function(node):
+        '''
+            returns True if this nodes has no childs
+        '''
+        raise NotImplementedError
+
+    def compute_move(self):
+        '''
+            assumes method process_turn_input have written attribute self.board
+        '''
+        fid = self.fixed_id or self.id
+        valf = self.value_functions[self.evaluation_level]
+        bestvalue, bestmove = getattr(lib, self.algorithm)({'board': self.board, 'to_move': fid, 'move': None},
+                          value_function=valf, child_function=self.child_function,
+                         terminal_function=self.terminal_function, depth=self.search_depth)
+        player_logger.debug('bestmove: %s; bestvalue: %s', bestmove, bestvalue)
+        return str(bestmove['move'] + 1)
