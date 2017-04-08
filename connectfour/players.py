@@ -47,14 +47,14 @@ class MiniMaxingCFPlayer(MiniMaxingPlayer, CFPlayer):
     def dumb_value_function(node):
         board = node['board']
         move = node['move']
-        value = -node['to_move'] * inf if check_victory(board, move) else 0
+        value = -node['to_move'] * inf if check_victory(board, move - 1) else 0
         player_logger.debug('evaluated move %s on board %s: value %s', move, board, value)
         return value
 
     @staticmethod
     def some_heuristics(node):
         board = node['board']
-        x = node['move']
+        x = node['move'] - 1
         if check_victory(board, x):
             return -node['to_move'] * inf
         col = board[x]
@@ -98,7 +98,7 @@ class MiniMaxingCFPlayer(MiniMaxingPlayer, CFPlayer):
                 yield {
                     'board': b,
                     'to_move': -to_move,
-                    'move': x
+                    'move': x + 1
                 }
 
     @staticmethod
@@ -108,7 +108,7 @@ class MiniMaxingCFPlayer(MiniMaxingPlayer, CFPlayer):
         if move is None:
             # state of the board BEFORE the move
             return False
-        if check_victory(board, move):
+        if check_victory(board, move - 1):
             return True
         if all(c[-1] != 0 for c in board):
             return True

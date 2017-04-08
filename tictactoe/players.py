@@ -1,5 +1,5 @@
 
-from core.players import RandomPlayer, IOPlayer, Player
+from core.players import RandomPlayer, IOPlayer, Player, MiniMaxingPlayer
 from core.lib import negamax, minimax, shuffling_negamax
 from core.main import player_logger
 
@@ -38,7 +38,7 @@ class RandomTTTPlayer(RandomPlayer, TTTPlayer):
         return self.available_moves
 
 
-class MiniMaxingTTTPlayer(TTTPlayer):
+class MiniMaxingTTTPlayer(MiniMaxingPlayer, TTTPlayer):
 
     search_depth = 2
     evaluation_level = 2

@@ -1,7 +1,7 @@
 from random import choice
 
-from core import lib
-from core.main import player_logger
+from . import lib
+from .main import player_logger
 
 
 class Player:
@@ -131,9 +131,9 @@ class MiniMaxingPlayer(Player):
             assumes method process_turn_input have written attribute self.board
         '''
         fid = self.fixed_id or self.id
-        valf = self.value_functions[self.evaluation_level]
+        valf = getattr(self, self.value_functions[self.evaluation_level])
         bestvalue, bestmove = getattr(lib, self.algorithm)({'board': self.board, 'to_move': fid, 'move': None},
                           value_function=valf, child_function=self.child_function,
                          terminal_function=self.terminal_function, depth=self.search_depth)
         player_logger.debug('bestmove: %s; bestvalue: %s', bestmove, bestvalue)
-        return str(bestmove['move'] + 1)
+        return str(bestmove['move'])

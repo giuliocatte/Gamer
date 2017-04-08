@@ -2,8 +2,6 @@ import logging
 import os
 from random import shuffle
 
-from .players import IOPlayer
-
 match_logger = logging.getLogger('gamer.match')
 ref_logger = logging.getLogger('gamer.referee')
 player_logger = logging.getLogger('gamer.player')
@@ -169,3 +167,6 @@ class Match:
                 os.system('clear')
             self.referee.interactive_board()
         return state
+
+
+from .players import IOPlayer  # to avoid circular import
