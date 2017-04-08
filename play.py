@@ -39,7 +39,7 @@ def test_game(mod):
     else:
         rand = True
 
-    match = Match(game_class=mod.REFEREE_CLASS, players=players, random_order=rand)
+    match = Match(game=mod.REFEREE_CLASS(), players=players, random_order=rand)
     outcome = match.run()
     if outcome == DRAW:
         print('Draw!')

@@ -38,7 +38,7 @@ def get_callable_from_saved_network(file_path=DEFAULT_PATH):
     return cal
 
 
-std_ref = ConnectFour(players=[])  # just for board printing
+std_ref = ConnectFour()  # just for board printing
 
 
 def play_c4_game(mover1, mover2, debug=False):
@@ -126,6 +126,7 @@ class Trainer:
         print('start', datetime.now())
         p = MiniMaxingCFPlayer(search_depth=search_depth)
         p.setup(1, ['YELLOW'])  # that input isn't useful, but calling setup is
+        # player id is always 1, because the board is flipped by the referee
 
         train_c4_policy_gradient(oppo, number_of_games, self, **kwargs)
         print('end', datetime.now())
@@ -137,4 +138,3 @@ class Trainer:
 if __name__ == '__main__':
     import fire
     fire.Fire(Trainer)
-

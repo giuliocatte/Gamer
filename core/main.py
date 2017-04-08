@@ -25,9 +25,9 @@ class Game:
     '''
         abstract base class for games
     '''
+    players_number = 2
 
-    def __init__(self, players=2, random_seed=None):
-        self.players_number = players
+    def __init__(self, random_seed=None):
         self.random_seed = random_seed
         self.round_number = 0
 
@@ -64,8 +64,8 @@ class SequentialGame(Game):
     '''
     turn_type = SEQUENTIAL
 
-    def __init__(self, players=2, random_seed=None):
-        super().__init__(players, random_seed)
+    def __init__(self, random_seed=None):
+        super().__init__(random_seed)
         self.turn_number = 0
 
     def execute_turn(self, player_id, move):
@@ -102,13 +102,13 @@ class Match:
         ideally (but this is not implemented yet) these agents could be run asinchronically
     '''
 
-    def __init__(self, game_class, players, random_order=True, interactive=None, clear_board=True):
+    def __init__(self, game, players, random_order=True, interactive=None, clear_board=True):
         pl = self.players = list(players)
         self.interactive = any(isinstance(p, IOPlayer) for p in players) if interactive is None else interactive
         self.clear_board = clear_board
         if random_order:
             shuffle(pl)
-        self.referee = game_class(players)
+        self.referee = game
 
     def simultaneous_turn(self):
         boards = self.referee.get_boards()

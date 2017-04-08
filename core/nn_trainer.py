@@ -27,13 +27,13 @@ except ImportError:
 _closing = False
 
 
-def kill_handler(signum, frame):
+def _kill_handler(signum, frame):
     print('received stop signal, terminating mini-batch')
     global _closing
     _closing = True
 
 
-signal.signal(signal.SIGINT, kill_handler)
+signal.signal(signal.SIGINT, _kill_handler)
 
 
 def train_policy_gradients(nn_parameters, move_shape, match_func, opponent_func,
@@ -147,6 +147,8 @@ def _win_rate(print_results_every, results):
             = (won - lost) / ((won + lost) * 2) + 0.5
 
         where result = won - lost; print_result_every = won + lost
+
+        soooo this isn't working, because actually print_results_every is won + lost + draw
     '''
     return 0.5 + sum(results) / (print_results_every * 2.)
 

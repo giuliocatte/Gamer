@@ -5,6 +5,7 @@ from itertools import cycle
 import numpy as np
 import tensorflow as tf
 
+from core.main import InvalidMove
 
 try:
     from core.nn_trainer import train_policy_gradients
@@ -115,15 +116,17 @@ class Trainer:
             print('search depth', i)
             p = MiniMaxingTTTPlayer(search_depth=i)
             p.setup(1, ['X'])  # that 'X' isn't useful, but calling setup is
+            # player id gets corrected at every call of oppo function
 
             train_ttt_policy_gradient(oppo, 50000, self)
             print('end', datetime.now())
 
     def manual_training(self, gamesnumber=50):
         from tictactoe.referee import TicTacToe, SYMBOLS
-        r = TicTacToe(players=[])  # just using this for board printing
+        r = TicTacToe()  # just using this for board printing
 
         slots = ('A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'C1', 'C2', 'C3')
+
         def oppo(board, pid):
             b = r.board = {}
             for k, val in zip(slots, board):
@@ -134,7 +137,7 @@ class Trainer:
                 print('enter move: ', end='')
                 try:
                     return slots.index(input().upper())
-                except Exception:
+                except InvalidMove:
                     print('ehi, pay attention!')
         train_ttt_policy_gradient(oppo, gamesnumber, self, print_results_every=10, batch_size=min(25, gamesnumber))
 
@@ -160,4 +163,3 @@ class Trainer:
 if __name__ == '__main__':
     import fire
     fire.Fire(Trainer)
-

@@ -50,7 +50,7 @@ class Arena:
         print('running: {:>3}%'.format(0), end='')
         phase = None
         for i in range(1, games + 1):
-            match = Match(game_class=self.game_class, players=self.players)
+            match = Match(game=self.game_class(), players=self.players)
             outcome = match.run()
             if outcome == DRAW:
                 outcomes['draws'] += 1
@@ -76,7 +76,7 @@ class Arena:
         match_logger.setLevel(logging.INFO)
         player_logger.setLevel(logging.DEBUG)
         ref_logger.setLevel(logging.DEBUG)
-        match = Match(game_class=self.game_class, players=self.players, interactive=True, clear_board=False)
+        match = Match(game=self.game_class(), players=self.players, interactive=True, clear_board=False)
         outcome = match.run()
         print(str(match.players[outcome - 1]) + ' wins')
 

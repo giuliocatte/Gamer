@@ -12,8 +12,8 @@ LINES = [['A1', 'A2', 'A3'], ['B1', 'B2', 'B3'], ['C1', 'C2', 'C3'],
 
 class TicTacToe(SequentialGame):
 
-    def __init__(self, players):
-        super().__init__(players)
+    def __init__(self):
+        super().__init__()
         self.board = dict.fromkeys((x + y for x in 'ABC' for y in '123'), EMPTY)
 
     def setup(self):
