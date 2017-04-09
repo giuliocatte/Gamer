@@ -49,7 +49,8 @@ def train_policy_gradients(nn_parameters, move_shape, match_func, opponent_func,
             id of the winning player (1 or -1) or 0 in the case of a draw
         opponent_func function that represents the opponent: takes in input board state and player id, returns in output
             a flat move
-        batch_size the size of the mini batch (cfr http://sebastianruder.com/optimizing-gradient-descent/#minibatchgradientdescent)
+        batch_size the size of the mini batch
+            (cfr http://sebastianruder.com/optimizing-gradient-descent/#minibatchgradientdescent)
 
         if just nn_write_path is passed, writes a new net at the given path
         if just nn_path is passed, reads a net in given path, trains it further, and overwrites it
@@ -143,12 +144,16 @@ def train_policy_gradients(nn_parameters, move_shape, match_func, opponent_func,
 
 def _win_rate(print_results_every, results):
     '''
-        win ratio = won / (won + lost)
+        win ratio = won / played
             = (won - lost) / ((won + lost) * 2) + 0.5
+        if played = won + lost
 
-        where result = won - lost; print_result_every = won + lost
+        (where result = won - lost; print_result_every = won + lost)
 
-        soooo this isn't working, because actually print_results_every is won + lost + draw
+        soooo this isn't quite working, because actually played = print_results_every = won + lost + draw
+        draws are taken into account as half a win
+        i.e. in ten games 6 draw + 2 win + 2 lost gives a win rate of 50%
+        right? wrong? hard to tell
     '''
     return 0.5 + sum(results) / (print_results_every * 2.)
 

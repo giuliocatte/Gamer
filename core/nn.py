@@ -22,6 +22,8 @@ def create_network(input_nodes, hidden_nodes, output_nodes=None, output_softmax=
         output_softmax (bool): If True softmax is used in the final layer, otherwise just use the activation with no
             non-linearity function
 
+        softmax is a way to convert raw scores to probabilities (https://en.wikipedia.org/wiki/Softmax_function)
+
     Returns:
         (input_layer, output_layer, [variables]) : The final item in the tuple is a list containing all the parameters,
             wieghts and biases used in this network

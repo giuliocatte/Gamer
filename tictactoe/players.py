@@ -1,6 +1,5 @@
 
 from core.players import RandomPlayer, IOPlayer, Player, MiniMaxingPlayer
-from core.lib import negamax, minimax, shuffling_negamax
 from core.main import player_logger
 
 from .referee import LINES, SYMBOLS, EMPTY
@@ -12,7 +11,6 @@ inf = float('inf')
 class TTTPlayer(Player):
     turn_lines = 3
     setup_lines = 1
-
 
 
 class IOTTTPlayer(IOPlayer, TTTPlayer):

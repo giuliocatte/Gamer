@@ -1,6 +1,5 @@
 
 from core.players import RandomPlayer, IOPlayer, Player, MiniMaxingPlayer
-from core.lib import shuffling_negamax
 from core.main import player_logger
 from .referee import check_victory
 from .nn import get_callable_from_saved_network, DEFAULT_PATH
