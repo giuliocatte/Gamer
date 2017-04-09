@@ -216,7 +216,8 @@ class Chess(SequentialGame):
     def exposes_to_check(self, player_id, starting_tile, target_tile):
         b = self.board
         if b[starting_tile][-1] == 'K':
-            return check_menace(b, target_tile, pieces=self._player_pieces[(player_id % 2) + 1], free_cell=starting_tile)
+            return check_menace(b, target_tile, pieces=self._player_pieces[(player_id % 2) + 1],
+                                free_cell=starting_tile)
         else:
             return check_menace(b, self._kings[player_id], pieces=self._player_pieces[(player_id % 2) + 1],
                                 free_cell=starting_tile, block_cell=target_tile)
@@ -242,11 +243,12 @@ class Chess(SequentialGame):
             raise InvalidMove('starting position is a empty square (move "{}")'.format(strmove))
         plcol = COLORS[player_id - 1]
         if col != plcol:
-            raise InvalidMove('starting position not corresponding to a piece of correct player (move "{}")'.format(strmove))
+            raise InvalidMove('starting position not corresponding to a piece of correct player (move "{}")'.format(
+                                                                                                            strmove))
         if new_piece:
             # promotion
             if piece != 'P' or c2[1] not in ('1', '8') or new_piece not in 'QRNB':
-               raise InvalidMove('invalid promotion (move "{}")'.format(strmove))
+                raise InvalidMove('invalid promotion (move "{}")'.format(strmove))
         else:
             new_piece = piece
         try:
@@ -328,11 +330,16 @@ class Chess(SequentialGame):
         return self.draw_turn_counter == 100 or len(pp[0]) == len(pp[1]) == 1
 
     def check_checkmate(self, player_id):
+        '''
+            returns True if player {player_id} made checkmate with last move
+        '''
         b = self.board
         pp = self._player_pieces
-        if check_menace(b, self._kings[(player_id % 2) + 1], pieces=pp[player_id]):  # check
-            # TODO: l'unico modo per capire se e' matto e' vedere se ci sono mosse consentite per il prossimo
-            # turno
+        other_player = (player_id % 2) + 1
+        if check_menace(b, self._kings[other_player], pieces=pp[player_id]):  # check
+            if any(self.available_moves(other_player)):
+                return True
+        return False
 
     def interactive_board(self):
         # TODO: bisognerebbe printarla girata se e' il turno del giocatore nero
@@ -352,4 +359,3 @@ class Chess(SequentialGame):
                     print(back + piece_colors[piece[0]] + PIECES[piece[1]], end=' ')
         print()
         print('  a b c d e f g h')
-
