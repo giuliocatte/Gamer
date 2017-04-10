@@ -3,6 +3,7 @@
 '''
 from itertools import product
 
+from core.lib import debug
 from core.main import SequentialGame, InvalidMove, DRAW, RUNNING, ref_logger
 import colorama
 colorama.init(autoreset=True)
@@ -111,9 +112,16 @@ def check_menace(board, tile, player_id=None, pieces=None, free_cell=None, block
         pieces = (coord for coord, (col, p) in board.items() if plcol == col)
 
     for coord in pieces:
-        for m in available_piece_moves(board, coord, free_cell=free_cell, block_cell=block_cell):
-            if m == tile:
+        col, p = board[coord]
+        # TODO: probably this should be a Chess method, so I would have better ways to handle pawns
+        if p == 'P':
+            dy = -1 if col == 'W' else 1
+            if tile[1] == coord[1] + dy and abs(tile[0] - coord[0]) == 1:
                 return coord
+        else:
+            for m in available_piece_moves(board, coord, free_cell=free_cell, block_cell=block_cell):
+                if m == tile:
+                    return coord
     return False
 
 
@@ -155,10 +163,10 @@ class Chess(SequentialGame):
         self.board = b = dict.fromkeys(product(range(8), repeat=2), EMPTY)
         for col, y in zip(COLORS, (7, 0)):
             for i, p in zip(range(8), 'RNBQKBNR'):
-                b[y, i] = col + p
+                b[i, y] = col + p
         for col, y in zip(COLORS, (6, 1)):
             for i in range(8):
-                b[y, i] = col + 'P'
+                b[i, y] = col + 'P'
 
     def copy(self):
         new = Chess()
@@ -175,9 +183,10 @@ class Chess(SequentialGame):
         return [['WHITE'], ['BLACK']]
 
     def get_board(self, player_id):
-        return self.moves[-1] if self.moves else NULLMOVE
+        return [self.moves[-1] if self.moves else NULLMOVE]
 
     def available_moves(self, player_id, starting_tile=None):
+        # TODO: this should manage also castles
         b = self.board
         tiles = (starting_tile, ) if starting_tile else self._player_pieces[player_id]
         for t in tiles:
@@ -200,17 +209,17 @@ class Chess(SequentialGame):
         sx, sy = starting_tile
         b = self.board
         oppo = COLORS[player_id % 2]
-        c = sx, sy + 1
+        c = sx, sy + dy
         if b[c] == EMPTY:
             yield c
             # double movement from starting position
-            c = sx, sy + 2
+            c = sx, sy + dy * 2
             if (sy - 1 * dy) % 7 == 0 and b[c] == EMPTY:
                 yield c
         # capture
         for dx in (-1, 1):
             c = sx + dx, sy + dy
-            if b[c][0] == oppo or self.available_ep == (sx + dx, sy):
+            if 0 <= sx + dx < 8 and (b[c][0] == oppo or self.available_ep == (sx + dx, sy)):
                 yield c
 
     def exposes_to_check(self, player_id, starting_tile, target_tile):
@@ -245,12 +254,6 @@ class Chess(SequentialGame):
         if col != plcol:
             raise InvalidMove('starting position not corresponding to a piece of correct player (move "{}")'.format(
                                                                                                             strmove))
-        if new_piece:
-            # promotion
-            if piece != 'P' or c2[1] not in ('1', '8') or new_piece not in 'QRNB':
-                raise InvalidMove('invalid promotion (move "{}")'.format(strmove))
-        else:
-            new_piece = piece
         try:
             c2x = XCOORD.index(c2[0])
             c2y = YCOORD.index(c2[1])
@@ -261,6 +264,11 @@ class Chess(SequentialGame):
         # move validation
         if b[target_tile][0] == col:
             raise InvalidMove('target space occupied by friendly piece (move "{}")'.format(strmove))
+        if new_piece:  # promotion
+            if piece != 'P' or c2[1] not in ('1', '8') or new_piece not in 'QRNB':
+                raise InvalidMove('invalid promotion (move "{}")'.format(strmove))
+        else:
+            new_piece = piece
         ac = self.available_castles[player_id]
         castling_rook = None
         if starting_tile == KING_HOUSES[player_id] and target_tile in ac:  # castle
@@ -289,13 +297,13 @@ class Chess(SequentialGame):
             # en passant
             b[self.available_ep] = EMPTY
             pp[(player_id % 2) + 1].remove(self.available_ep)
-        b[target_tile] = new_piece
+        b[target_tile] = col + new_piece
         pp[player_id].remove(starting_tile)
         pp[player_id].add(target_tile)
         if castling_rook:
             b[castling_rook[0]] = EMPTY
             pp[player_id].remove(castling_rook[0])
-            b[castling_rook[1]] = 'R'
+            b[castling_rook[1]] = col + 'R'
             pp[player_id].add(castling_rook[1])
 
         if piece == 'P' or capture:
@@ -327,7 +335,7 @@ class Chess(SequentialGame):
 
     def check_draw(self):
         pp = self._player_pieces
-        return self.draw_turn_counter == 100 or len(pp[0]) == len(pp[1]) == 1
+        return self.draw_turn_counter == 100 or len(pp[1]) == len(pp[2]) == 1
 
     def check_checkmate(self, player_id):
         '''
@@ -348,14 +356,14 @@ class Chess(SequentialGame):
         b = self.board
         cell_colors = (colorama.Back.GREEN, colorama.Back.YELLOW)
         piece_colors = {'W': colorama.Fore.WHITE, 'B': colorama.Fore.BLACK}
-        for row in range(8):
-            print(str(8 - row), end=' ')
-            for col in range(8):
-                back = cell_colors[(row + col) % 2]
-                piece = b[row, col]
+        for y in range(8):
+            print(str(8 - y) + ' ', end='')
+            for x in range(8):
+                back = cell_colors[(y + x) % 2]
+                piece = b[x, y]
                 if piece == EMPTY:
                     print(back + '  ', end='')
                 else:
-                    print(back + piece_colors[piece[0]] + PIECES[piece[1]], end=' ')
-        print()
+                    print(back + piece_colors[piece[0]] + PIECES[piece[1]] + ' ', end='')
+            print()
         print('  a b c d e f g h')
