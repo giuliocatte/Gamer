@@ -10,7 +10,7 @@ player_logger.setLevel(logging.WARN)
 ref_logger.setLevel(logging.WARN)
 
 
-def test_game(mod):
+def test_game(mod, **kwargs):
     print('choose AI:')
     for i, ai in enumerate(mod.AIS):
         print('{}. {}{}'.format(i, ai['caption'], ' (default)' if not i else ''))
@@ -39,7 +39,7 @@ def test_game(mod):
     else:
         rand = True
 
-    match = Match(game=mod.REFEREE_CLASS(), players=players, random_order=rand)
+    match = Match(game=mod.REFEREE_CLASS(), players=players, random_order=rand, **kwargs)
     outcome = match.run()
     if outcome == DRAW:
         print('Draw!')
@@ -49,17 +49,26 @@ def test_game(mod):
 
 class Play:
 
-    def ttt(self):
+    def __init__(self, p_log='WARN', r_log='WARN', m_log='WARN'):
+        match_logger.setLevel(getattr(logging, m_log))
+        player_logger.setLevel(getattr(logging, p_log))
+        ref_logger.setLevel(getattr(logging, r_log))
+
+    def chess(self, **kwargs):
+        import chess.test as mod
+        test_game(mod, **kwargs)
+
+    def ttt(self, **kwargs):
         ''' plays a game of tic tac toe
         '''
         import tictactoe.test as mod
-        test_game(mod)
+        test_game(mod, **kwargs)
 
-    def c4(self):
+    def c4(self, **kwargs):
         ''' plays a game of connect4
         '''
         import connectfour.test as mod
-        test_game(mod)
+        test_game(mod, **kwargs)
 
 
 if __name__ == '__main__':
