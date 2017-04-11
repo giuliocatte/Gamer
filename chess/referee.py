@@ -3,7 +3,6 @@
 '''
 from itertools import product
 
-from core.lib import debug
 from core.main import SequentialGame, InvalidMove, DRAW, RUNNING, ref_logger
 import colorama
 colorama.init(autoreset=True)
@@ -90,10 +89,14 @@ def available_piece_moves(board, tile, free_cell=None, block_cell=None):
                     d0 = t0 + dx * v * l
                     d1 = t1 + dy * v * l
                     k = d0, d1
-                    if k == free_cell or 0 <= d0 <= 7 and 0 <= d1 <= 7 and board[k][0] != col and k != block_cell:
-                        yield k
-                    else:
-                        break
+                    if 0 <= d0 <= 7 and 0 <= d1 <= 7:  # in board
+                        c = board[k][0]
+                        if k == free_cell or c == EMPTY:  # empty cell
+                            yield k
+                            continue
+                        elif block_cell or c != col:  # opponent piece
+                            yield k
+                    break
 
 
 def check_menace(board, tile, player_id=None, pieces=None, free_cell=None, block_cell=None):
@@ -113,7 +116,7 @@ def check_menace(board, tile, player_id=None, pieces=None, free_cell=None, block
 
     for coord in pieces:
         col, p = board[coord]
-        # TODO: probably this should be a Chess method, so I would have better ways to handle pawns
+        # TODO: probably this should be a Chess method, so that I would have better ways to handle pawns
         if p == 'P':
             dy = -1 if col == 'W' else 1
             if tile[1] == coord[1] + dy and abs(tile[0] - coord[0]) == 1:
@@ -186,7 +189,6 @@ class Chess(SequentialGame):
         return [self.moves[-1] if self.moves else NULLMOVE]
 
     def available_moves(self, player_id, starting_tile=None):
-        # TODO: this should manage also castles
         b = self.board
         tiles = (starting_tile, ) if starting_tile else self._player_pieces[player_id]
         for t in tiles:
@@ -198,6 +200,16 @@ class Chess(SequentialGame):
                 for m in available_piece_moves(b, t):
                     if not self.exposes_to_check(player_id, t, m):
                         yield (t, m)
+                # castles
+                if starting_tile == KING_HOUSES[player_id]:
+                    for m in self.available_castles[player_id]:
+                        c2x, c2y = m
+                        for i, tile in enumerate((t, (3, c2y) if c2x == 2 else (5, c2y), m)):
+                            # here enumerate is used only to exclude first element from the first check
+                            if i and b[tile] != EMPTY or check_menace(b, tile, (player_id % 2) + 1):
+                                break
+                        else:
+                            yield (t, m)
 
     def valid_pawn_moves(self, player_id, starting_tile):
         '''
@@ -272,17 +284,9 @@ class Chess(SequentialGame):
         ac = self.available_castles[player_id]
         castling_rook = None
         if starting_tile == KING_HOUSES[player_id] and target_tile in ac:  # castle
-            if c2x == 2:  # long castle
-                castling_rook = [(0, c2y), (2, c2y)]
-                traveling_tile = (3, c2y)
-            else:
-                castling_rook = [(7, c2y), (5, c2y)]
-                traveling_tile = (5, c2y)
-            for t in (starting_tile, traveling_tile, target_tile):
-                if b[t] != EMPTY or check_menace(b, t, (player_id % 2) + 1):
-                    raise InvalidMove('invalid castle "{}"'.format(strmove))
+            castling_rook = [(0, c2y), (2, c2y)] if c2x == 2 else [(7, c2y), (5, c2y)]
 
-        elif all(m != (starting_tile, target_tile) for m in self.available_moves(player_id, starting_tile)):
+        if all(m != (starting_tile, target_tile) for m in self.available_moves(player_id, starting_tile)):
             raise InvalidMove('invalid move "{}"'.format(strmove))
 
         # ladies and gentleman, the move!
@@ -324,7 +328,7 @@ class Chess(SequentialGame):
             if piece == 'K':
                 ac.clear()
 
-        self.tomove = COLORS[player_id - 1]
+        self.tomove = COLORS[player_id % 2]
 
         if self.check_checkmate(player_id):
             return player_id
@@ -344,21 +348,25 @@ class Chess(SequentialGame):
         b = self.board
         pp = self._player_pieces
         other_player = (player_id % 2) + 1
-        if check_menace(b, self._kings[other_player], pieces=pp[player_id]):  # check
+        other_king = self._kings[other_player]
+        check = check_menace(b, other_king, pieces=pp[player_id])
+        if check:  # check
+            ref_logger.info('opposing king %s under check from %s, looking for mate', other_king, check)
             if any(self.available_moves(other_player)):
-                return True
+                return False
+            return True
         return False
 
     def interactive_board(self):
-        # TODO: bisognerebbe printarla girata se e' il turno del giocatore nero
-        # ho aggiunto all'uopo self.tomove
         print()
         b = self.board
         cell_colors = (colorama.Back.GREEN, colorama.Back.YELLOW)
         piece_colors = {'W': colorama.Fore.WHITE, 'B': colorama.Fore.BLACK}
-        for y in range(8):
+
+        ranges = range(8) if self.tomove == 'W' else range(7, -1, -1)
+        for y in ranges:
             print(str(8 - y) + ' ', end='')
-            for x in range(8):
+            for x in ranges:
                 back = cell_colors[(y + x) % 2]
                 piece = b[x, y]
                 if piece == EMPTY:
@@ -366,4 +374,7 @@ class Chess(SequentialGame):
                 else:
                     print(back + piece_colors[piece[0]] + PIECES[piece[1]] + ' ', end='')
             print()
-        print('  a b c d e f g h')
+        if self.tomove == 'W':
+            print('  a b c d e f g h')
+        else:
+            print('  h g f e d c b a')

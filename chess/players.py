@@ -121,7 +121,11 @@ class IOChessPlayer(ChessPlayer, IOPlayer):
         while True:
             move = IOPlayer.compute_move(self)  # using super here would create a loop
             if self.algebraic:
-                move = self.parse_algebraic(move)
+                try:
+                    move = self.parse_algebraic(move)
+                except (ValueError, IndexError):
+                    print('invalid move!')
+                    continue
             player_logger.debug(move)
             if any(m == move for m in get_available_moves_from_game(self.game, self.id)):
                 break
