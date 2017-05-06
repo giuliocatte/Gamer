@@ -24,7 +24,7 @@ asyncio, so 3.4+ will be required.
 As non-standard dependencies, I use tensorflow (I used the dumbest
 installation for macos without gpu), numpy (which is actually
 required for tensorflow, so I'm not sure I should write it here),
-colorama (right now just for Connect Four), and Python Fire for
+colorama for interactive output, and Python Fire for
 CLI.
 
 Many thanks to Daniel Slater from whom
@@ -43,6 +43,21 @@ Right now, the only implemented games are `ttt` for tic tac toe
 It would ask some interactive input for the game configuration.
 Neural networks won't work until trained, so you will be getting an
 exception if you select them as an opponent.
+
+Since CLI is run by Python Fire, the better way to understand the commands
+is to have a look at the code. For instance
+```
+python3 play.py --p_log DEBUG --m_log DEBUG --r_log DEBUG - chess --clear_board False
+```
+will start a very verbose chess match, without the page clear after every
+move so that the log would be readable.
+
+Aside from neural network training, there are two main file you will
+execute like this. The first is the aforementioned play.py, the second
+one is arena.py, which is a script to pit an AI verus another, have them
+to play a lot of matches, and get some stats. Running the "explain"
+method, will instead run a single game, with verbose logging, so that the
+ choices of the AIs could be debugged.
 
 ### Network Training
 

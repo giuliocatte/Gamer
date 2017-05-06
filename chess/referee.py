@@ -26,7 +26,6 @@ PIECES = {
     'P': '♟'
 }
 
-CASTLES = ('0-0', '0-0-0')
 COLORS = ('W', 'B')
 EMPTY = '.'
 XCOORD = 'abcdefgh'
@@ -80,7 +79,7 @@ def available_piece_moves(board, tile, free_cell=None, block_cell=None):
             d0 = t0 + m0
             d1 = t1 + m1
             k = d0, d1
-            if k == free_cell or 0 <= d0 <= 7 and 0 <= d1 <= 7 and board[k][0] != col and k != block_cell:
+            if k == free_cell or 0 <= d0 <= 7 and 0 <= d1 <= 7 and board[k][0] != col or k == block_cell:
                 yield k
     else:
         for dx, dy in DIRECTIONS[piece]:
@@ -91,41 +90,12 @@ def available_piece_moves(board, tile, free_cell=None, block_cell=None):
                     k = d0, d1
                     if 0 <= d0 <= 7 and 0 <= d1 <= 7:  # in board
                         c = board[k][0]
-                        if k == free_cell or c == EMPTY:  # empty cell
+                        if k == free_cell or c == EMPTY and k != block_cell:  # empty cell
                             yield k
                             continue
-                        elif block_cell or c != col:  # opponent piece
+                        elif k == block_cell or c != col:  # opponent piece
                             yield k
                     break
-
-
-def check_menace(board, tile, player_id=None, pieces=None, free_cell=None, block_cell=None):
-    '''
-        returns a true value if the tile is under menace, false otherwise
-        do not take into account en passant
-        if a true value is returned, it is the coordinate set of _a_ menacing piece
-
-        if pieces is given, those coordinates for starting menaces are checked
-        otherwise, the full board is scanned for pieces of player player_id
-
-        skip_cell and block cell are propagated to available_piece_moves
-    '''
-    if pieces is None:
-        plcol = COLORS[player_id - 1]
-        pieces = (coord for coord, (col, p) in board.items() if plcol == col)
-
-    for coord in pieces:
-        col, p = board[coord]
-        # TODO: probably this should be a Chess method, so that I would have better ways to handle pawns
-        if p == 'P':
-            dy = -1 if col == 'W' else 1
-            if tile[1] == coord[1] + dy and abs(tile[0] - coord[0]) == 1:
-                return coord
-        else:
-            for m in available_piece_moves(board, coord, free_cell=free_cell, block_cell=block_cell):
-                if m == tile:
-                    return coord
-    return False
 
 
 class Chess(SequentialGame):
@@ -157,9 +127,9 @@ class Chess(SequentialGame):
         self.available_ep = None  # "enpassable" piece
         # list variables defined here have None as first element, so that I can access them by player_id
         self.available_castles = [None, {(2, 7), (6, 7)}, {(2, 0), (6, 0)}]
-        self._kings = [None, (4, 7), (4, 0)]
-        self._player_pieces = [None, {(x, y) for x in range(8) for y in range(6, 8)},
-                               {(x, y) for x in range(8) for y in range(2)}]
+        self.kings = [None, (4, 7), (4, 0)]
+        self.player_pieces = [None, {(x, y) for x in range(8) for y in range(6, 8)},
+                              {(x, y) for x in range(8) for y in range(2)}]
 
         self.tomove = COLORS[0]
         self.moves = []
@@ -171,16 +141,6 @@ class Chess(SequentialGame):
             for i in range(8):
                 b[i, y] = col + 'P'
 
-    def copy(self):
-        new = Chess()
-        new.draw_turn_counter = self.draw_turn_counter
-        new.available_ep = self.available_ep
-        new.available_castles = [None] + [ac.copy() for ac in self.available_castles[1:]]
-        new._kings = list(self._kings)
-        new._player_pieces = [None] + [pp.copy() for pp in self._player_pieces[1:]]
-        new.tomove = self.tomove
-        new.board = self.board.copy()
-
     def setup(self):
         ref_logger.info('starting game')
         return [['WHITE'], ['BLACK']]
@@ -190,7 +150,7 @@ class Chess(SequentialGame):
 
     def available_moves(self, player_id, starting_tile=None):
         b = self.board
-        tiles = (starting_tile, ) if starting_tile else self._player_pieces[player_id]
+        tiles = (starting_tile, ) if starting_tile else self.player_pieces[player_id]
         for t in tiles:
             if b[t][1] == 'P':
                 for m in self.valid_pawn_moves(player_id, t):
@@ -201,17 +161,49 @@ class Chess(SequentialGame):
                     if not self.exposes_to_check(player_id, t, m):
                         yield (t, m)
                 # castles
-                if starting_tile == KING_HOUSES[player_id]:
+                if t == KING_HOUSES[player_id]:
                     for m in self.available_castles[player_id]:
                         c2x, c2y = m
                         for i, tile in enumerate((t, (3, c2y) if c2x == 2 else (5, c2y), m)):
                             # here enumerate is used only to exclude first element from the first check
-                            if i and b[tile] != EMPTY or check_menace(b, tile, (player_id % 2) + 1):
+                            if i and b[tile] != EMPTY or self.check_menace(tile, (player_id % 2) + 1):
                                 break
                         else:
                             yield (t, m)
 
-    def valid_pawn_moves(self, player_id, starting_tile):
+    def check_menace(self, tile, player_id, pieces=None, free_cell=None, block_cell=None):
+        '''
+            returns a true value if the tile is under menace, false otherwise
+            do not take into account en passant
+            if a true value is returned, it is the coordinate set of _a_ menacing piece
+
+            player_id is the moving player (the menacing one)
+
+            if pieces is given, those coordinates for starting menaces are checked
+            otherwise, the full board is scanned for pieces of player player_id
+
+            free_cell and block_cell are propagated to available_piece_moves
+        '''
+        board = self.board
+        if pieces is None:
+            plcol = COLORS[player_id - 1]
+            pieces = (coord for coord, col_p in board.items() if plcol == col_p[0])
+
+        for coord in pieces:
+            if coord == block_cell:  # this piece has been eaten
+                continue
+            col, p = board[coord]
+            if p == 'P':
+                for m in self.valid_pawn_moves(player_id, coord, free_cell=free_cell, block_cell=block_cell):
+                    if m == tile:
+                        return coord
+            else:
+                for m in available_piece_moves(board, coord, free_cell=free_cell, block_cell=block_cell):
+                    if m == tile:
+                        return coord
+        return False
+
+    def valid_pawn_moves(self, player_id, starting_tile, free_cell=None, block_cell=None):
         '''
             yields all valid moves for pawn of player {player_id} on {starting_tile}
             of course if it is the last tile there will be a promotion, but it's not handled here
@@ -222,31 +214,38 @@ class Chess(SequentialGame):
         b = self.board
         oppo = COLORS[player_id % 2]
         c = sx, sy + dy
-        if b[c] == EMPTY:
+        if b[c] == EMPTY and c != block_cell or c == free_cell:
             yield c
             # double movement from starting position
             c = sx, sy + dy * 2
-            if (sy - 1 * dy) % 7 == 0 and b[c] == EMPTY:
+            if (sy - 1 * dy) % 7 == 0 and (b[c] == EMPTY and c != block_cell or c == free_cell):
                 yield c
         # capture
         for dx in (-1, 1):
             c = sx + dx, sy + dy
-            if 0 <= sx + dx < 8 and (b[c][0] == oppo or self.available_ep == (sx + dx, sy)):
+            if 0 <= sx + dx < 8 and (b[c][0] == oppo or c == block_cell or self.available_ep == (sx + dx, sy)):
                 yield c
 
     def exposes_to_check(self, player_id, starting_tile, target_tile):
-        b = self.board
-        if b[starting_tile][-1] == 'K':
-            return check_menace(b, target_tile, pieces=self._player_pieces[(player_id % 2) + 1],
-                                free_cell=starting_tile)
-        else:
-            return check_menace(b, self._kings[player_id], pieces=self._player_pieces[(player_id % 2) + 1],
-                                free_cell=starting_tile, block_cell=target_tile)
+        '''
+            checks if the given move for player player_id exposes the moving player to check (i.e. is invalid)
+        '''
+        otherpl = (player_id % 2) + 1
+        targ = target_tile if self.board[starting_tile][-1] == 'K' else self.kings[player_id]
+        mena = self.check_menace(targ,
+                                 player_id=otherpl,
+                                 pieces=self.player_pieces[otherpl],
+                                 free_cell=starting_tile,
+                                 block_cell=target_tile)
+        if mena:
+            ref_logger.debug('move %s exposes to check from %s', (starting_tile, target_tile), mena)
+            return mena
 
     def execute_turn(self, player_id, strmove):
         b = self.board
-        pp = self._player_pieces
+        pp = self.player_pieces
 
+        ref_logger.debug('received input %s, validating', strmove)
         # input validation
         strmove = strmove.lower()
         if len(strmove) > 5 or len(strmove) < 4:
@@ -286,11 +285,13 @@ class Chess(SequentialGame):
         if starting_tile == KING_HOUSES[player_id] and target_tile in ac:  # castle
             castling_rook = [(0, c2y), (2, c2y)] if c2x == 2 else [(7, c2y), (5, c2y)]
 
-        if all(m != (starting_tile, target_tile) for m in self.available_moves(player_id, starting_tile)):
+        move = (starting_tile, target_tile)
+        ref_logger.debug('checking if given move %s is a valid one', move)
+        if all(m != move for m in self.available_moves(player_id, starting_tile)):
             raise InvalidMove('invalid move "{}"'.format(strmove))
 
-        # ladies and gentleman, the move!
         self.moves.append(strmove)
+        # ladies and gentleman, the move!
         b[starting_tile] = EMPTY
         capture = False
         if b[target_tile] != EMPTY:
@@ -319,7 +320,7 @@ class Chess(SequentialGame):
         else:
             self.available_ep = None
         if piece == 'K':
-            self._kings[player_id] = target_tile
+            self.kings[player_id] = target_tile
         if ac:
             if piece == 'R':
                 rc = ROOK_CASTLE.get(starting_tile)
@@ -330,32 +331,34 @@ class Chess(SequentialGame):
 
         self.tomove = COLORS[player_id % 2]
 
-        if self.check_checkmate(player_id):
+        mate = self.check_mate(player_id)
+        if mate == 2:
             return player_id
-        if self.check_draw():
+        elif mate == 1 or self.check_draw():
             return DRAW
-
         return RUNNING
 
     def check_draw(self):
-        pp = self._player_pieces
+        pp = self.player_pieces
         return self.draw_turn_counter == 100 or len(pp[1]) == len(pp[2]) == 1
 
-    def check_checkmate(self, player_id):
+    def check_mate(self, player_id):
         '''
-            returns True if player {player_id} made checkmate with last move
+            returns 2 if player {player_id} made checkmate with last move, 1 if stalemate, 0 if none
         '''
-        b = self.board
-        pp = self._player_pieces
+        pp = self.player_pieces
         other_player = (player_id % 2) + 1
-        other_king = self._kings[other_player]
-        check = check_menace(b, other_king, pieces=pp[player_id])
-        if check:  # check
-            ref_logger.info('opposing king %s under check from %s, looking for mate', other_king, check)
-            if any(self.available_moves(other_player)):
-                return False
-            return True
-        return False
+        other_king = self.kings[other_player]
+        ref_logger.debug('looking available moves of next player to detect mate')
+        available_moves = any(self.available_moves(other_player))
+        if not available_moves:
+            ref_logger.info('no available moves, checking whether is stalemate or checkmate')
+            check = self.check_menace(other_king, player_id=player_id, pieces=pp[player_id])
+            if check:  # check
+                ref_logger.info('opposing king %s under check from %s, mate!', other_king, check)
+                return 2
+            return 1
+        return 0
 
     def interactive_board(self):
         print()

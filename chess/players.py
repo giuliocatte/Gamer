@@ -1,7 +1,7 @@
 
 from core.main import player_logger
 from core.players import RandomPlayer, IOPlayer, Player, MiniMaxingPlayer
-from .referee import Chess, XCOORD, YCOORD, NULLMOVE, available_piece_moves
+from .referee import Chess, XCOORD, YCOORD, NULLMOVE, available_piece_moves, EMPTY
 #from .nn import get_callable_from_saved_network, DEFAULT_PATH
 
 inf = float('inf')
@@ -12,7 +12,7 @@ def get_available_moves_from_game(game, player_id):
     for starting_tile, target_tile in game.available_moves(player_id):
         m = ''.join((XCOORD[starting_tile[0]], YCOORD[starting_tile[1]], XCOORD[target_tile[0]], YCOORD[target_tile[1]]))
         if target_tile[1] in (0, 7) and b[starting_tile][-1] == 'P':
-            for p in 'rbqn':
+            for p in 'RBQN':
                 yield m + p
         else:
             yield m
@@ -33,6 +33,7 @@ class ChessPlayer(Player):
     def process_turn_input(self, inp):
         inp = inp[0]
         if inp != NULLMOVE:
+            player_logger.debug('updating internal state for opponent move %s', inp)
             self.game.execute_turn((self.id % 2) + 1, inp)
 
     def _compute_move(self):
@@ -40,6 +41,7 @@ class ChessPlayer(Player):
 
     def compute_move(self):
         move = self._compute_move()
+        player_logger.debug('updating internal state for player move %s', move)
         self.game.execute_turn(self.id, move)
         return move
 
@@ -55,24 +57,70 @@ class IOChessPlayer(ChessPlayer, IOPlayer):
 
     def process_turn_input(self, inp):
         if inp[0] != NULLMOVE:
-            print('opponent move:', inp[0])
+            print('opponent move:', self.to_algebraic(inp[0]))
         return super().process_turn_input(inp)
+
+    def to_algebraic(self, mov):
+        '''
+            converts a valid move in coordinates notation to algebraic notation
+        '''
+        g = self.game
+        b = g.board
+        starting = XCOORD.index(mov[0]), YCOORD.index(mov[1])
+        target = XCOORD.index(mov[2]), YCOORD.index(mov[3])
+        spiece = b[starting][1]
+        if spiece == 'K':
+            # check for castle
+            d = abs(starting[0] - target[0])
+            if d == 2:
+                return '0-0'
+            elif d == 3:
+                return '0-0-0'
+            otherpieces = ()
+        else:
+            otherpieces = [t for t in g.player_pieces[self.id] if t != starting and b[t] == spiece]
+            # in case of promotion, can be more than 1
+        tpart = mov[2:]  # pawn promotion is managed as well this way
+        if b[target] != EMPTY:
+            tpart = 'x' + tpart
+        elif b[starting] == 'P' and starting[0] != target[0]:
+            tpart = 'x' + tpart + 'e.p.'
+        if spiece == 'P':
+            spart = mov[0] if 'x' in tpart else ''
+        else:
+            spart = spiece
+            player_logger.debug('checking available moves for using proper algebraic notation')
+            if any(target in available_piece_moves(b, op) for op in otherpieces):
+                # disambiguation needed
+                if all(op[0] != starting[0] for op in otherpieces):
+                    spart = spart + mov[0]
+                elif all(op[1] != starting[1] for op in otherpieces):
+                    spart = spart + mov[1]
+                else:
+                    spart += mov[:2]
+        kingpos = g.kings[self.id]
+        player_logger.debug('checking if it is a king check to signal it')
+        check = g.check_menace(kingpos, (self.id % 2) + 1, free_cell=starting, block_cell=target)
+        if check:
+            player_logger.debug('king in %s menaced by %s after move %s%s', kingpos, check, spart, tpart)
+            tpart += '+'
+        return spart + tpart
 
     def parse_algebraic(self, alg):
         '''
             receives a move in algebraic notation, returns coordinates notation
         '''
         g = self.game
-        p = g._player_pieces[self.id]
+        p = g.player_pieces[self.id]
         np = ''
         b = g.board
         alg = alg.replace('+', '')
         if alg in ('0-0', '0-0-0', 'O-O', 'O-O-O'):
-            sx, sy = g._kings[self.id]
+            sx, sy = g.kings[self.id]
             ty = sy
             tx = 6 if len(alg) == 3 else 2
         elif alg[0] in ('K', 'Q', 'R', 'N', 'B'):
-            alg = alg.replace('x', '').replace(':', '')
+            alg = alg.replace('x', '').replace('X', '').replace(':', '')
             piece = alg[0]
             if len(alg) == 5:  # quite rare
                 sx = XCOORD.index(alg[1])
@@ -109,7 +157,7 @@ class IOChessPlayer(ChessPlayer, IOPlayer):
                 else:
                     sy = ty - 2 * dy
             else:
-                alg = alg.replace('x', '').replace(':', '')
+                alg = alg.replace('x', '').replace(':', '').replace('.', '').replace('ep', '')
                 sx = XCOORD.index(alg[0])
                 tx = XCOORD.index(alg[1])
                 ty = YCOORD.index(alg[2])
@@ -123,11 +171,11 @@ class IOChessPlayer(ChessPlayer, IOPlayer):
             if self.algebraic:
                 try:
                     move = self.parse_algebraic(move)
-                except (ValueError, IndexError):
+                except (ValueError, IndexError, StopIteration):
                     print('invalid move!')
                     continue
             player_logger.debug(move)
-            if any(m == move for m in get_available_moves_from_game(self.game, self.id)):
+            if move in get_available_moves_from_game(self.game, self.id):
                 break
             print('invalid move!')
         return move

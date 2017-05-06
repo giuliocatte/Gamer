@@ -131,6 +131,7 @@ class Match:
             for b in board:
                 m = p.listener.send(b)  # if input has multiple lines, only the last output is of interest
             # TODO: valutare timeout
+            match_logger.debug('sending move %s to referee', m)
             try:
                 state = self.referee.execute_turn(i, m)
             except InvalidMove as e:
