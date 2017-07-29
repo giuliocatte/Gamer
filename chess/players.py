@@ -1,16 +1,102 @@
-
 from core.main import player_logger
 from core.players import RandomPlayer, IOPlayer, Player, MiniMaxingPlayer
 from .referee import Chess, XCOORD, YCOORD, NULLMOVE, available_piece_moves, EMPTY
-#from .nn import get_callable_from_saved_network, DEFAULT_PATH
+
+# from .nn import get_callable_from_saved_network, DEFAULT_PATH
 
 inf = float('inf')
+
+PIECES_VALUES = {
+    'P': 100,
+    'N': 320,
+    'B': 330,
+    'R': 500,
+    'Q': 900,
+    'K': 20000
+}
+
+POSITIONS_VALUES = [None,
+    {'P': (
+        (  0,  0,  0,  0,  0,  0,  0,  0),
+        ( 50, 50, 50, 50, 50, 50, 50, 50),
+        ( 10, 10, 20, 30, 30, 20, 10, 10),
+        (  5,  5, 10, 25, 25, 10,  5,  5),
+        (  0,  0,  0, 20, 20,  0,  0,  0),
+        (  5, -5,-10,  0,  0,-10, -5,  5),
+        (  5, 10, 10,-20,-20, 10, 10,  5),
+        (  0,  0,  0,  0,  0,  0,  0,  0)
+    ),
+    'N': (
+        (-50,-40,-30,-30,-30,-30,-40,-50),
+        (-40,-20,  0,  0,  0,  0,-20,-40),
+        (-30,  0, 10, 15, 15, 10,  0,-30),
+        (-30,  5, 15, 20, 20, 15,  5,-30),
+        (-30,  0, 15, 20, 20, 15,  0,-30),
+        (-30,  5, 10, 15, 15, 10,  5,-30),
+        (-40,-20,  0,  5,  5,  0,-20,-40),
+        (-50,-40,-30,-30,-30,-30,-40,-50)
+    ),
+    'B': (
+        (-20,-10,-10,-10,-10,-10,-10,-20),
+        (-10,  0,  0,  0,  0,  0,  0,-10),
+        (-10,  0,  5, 10, 10,  5,  0,-10),
+        (-10,  5,  5, 10, 10,  5,  5,-10),
+        (-10,  0, 10, 10, 10, 10,  0,-10),
+        (-10, 10, 10, 10, 10, 10, 10,-10),
+        (-10,  5,  0,  0,  0,  0,  5,-10),
+        (-20,-10,-10,-10,-10,-10,-10,-20)
+    ),
+    'R': (
+        (  0,  0,  0,  0,  0,  0,  0,  0),
+        (  5, 10, 10, 10, 10, 10, 10,  5),
+        ( -5,  0,  0,  0,  0,  0,  0, -5),
+        ( -5,  0,  0,  0,  0,  0,  0, -5),
+        ( -5,  0,  0,  0,  0,  0,  0, -5),
+        ( -5,  0,  0,  0,  0,  0,  0, -5),
+        ( -5,  0,  0,  0,  0,  0,  0, -5),
+        (  0,  0,  0,  5,  5,  0,  0,  0)
+    ),
+    'Q': (
+        (-20,-10,-10, -5, -5,-10,-10,-20),
+        (-10,  0,  0,  0,  0,  0,  0,-10),
+        (-10,  0,  5,  5,  5,  5,  0,-10),
+        ( -5,  0,  5,  5,  5,  5,  0, -5),
+        (  0,  0,  5,  5,  5,  5,  0, -5),
+        (-10,  5,  5,  5,  5,  5,  0,-10),
+        (-10,  0,  5,  0,  0,  0,  0,-10),
+        (-20,-10,-10, -5, -5,-10,-10,-20)
+    ),
+    'K': (
+        (-30,-40,-40,-50,-50,-40,-40,-30),
+        (-30,-40,-40,-50,-50,-40,-40,-30),
+        (-30,-40,-40,-50,-50,-40,-40,-30),
+        (-30,-40,-40,-50,-50,-40,-40,-30),
+        (-20,-30,-30,-40,-40,-30,-30,-20),
+        (-10,-20,-20,-20,-20,-20,-20,-10),
+        ( 20, 20,  0,  0,  0,  0, 20, 20),
+        ( 20, 30, 10,  0,  0, 10, 30, 20)
+    ),
+    'L': (  # king late game
+        (-50,-40,-30,-20,-20,-30,-40,-50),
+        (-30,-20,-10,  0,  0,-10,-20,-30),
+        (-30,-10, 20, 30, 30, 20,-10,-30),
+        (-30,-10, 30, 40, 40, 30,-10,-30),
+        (-30,-10, 30, 40, 40, 30,-10,-30),
+        (-30,-10, 20, 30, 30, 20,-10,-30),
+        (-30,-30,  0,  0,  0,  0,-30,-30),
+        (-50,-30,-30,-30,-30,-30,-30,-50)
+    )
+}]
+POSITIONS_VALUES.append(
+    {k: tuple(t[::-1] for t in reversed(v)) for k, v in POSITIONS_VALUES[1].items()}
+)
 
 
 def get_available_moves_from_game(game, player_id):
     b = game.board
     for starting_tile, target_tile in game.available_moves(player_id):
-        m = ''.join((XCOORD[starting_tile[0]], YCOORD[starting_tile[1]], XCOORD[target_tile[0]], YCOORD[target_tile[1]]))
+        m = ''.join(
+            (XCOORD[starting_tile[0]], YCOORD[starting_tile[1]], XCOORD[target_tile[0]], YCOORD[target_tile[1]]))
         if target_tile[1] in (0, 7) and b[starting_tile][-1] == 'P':
             for p in 'RBQN':
                 yield m + p
@@ -47,7 +133,6 @@ class ChessPlayer(Player):
 
 
 class IOChessPlayer(ChessPlayer, IOPlayer):
-
     loud = False
     algebraic = True
 
@@ -182,7 +267,6 @@ class IOChessPlayer(ChessPlayer, IOPlayer):
 
 
 class RandomChessPlayer(ChessPlayer, RandomPlayer):
-
     def compute_available_moves(self):
         '''
             each pawn to last row movement accounts for 4 different promotions
@@ -194,21 +278,75 @@ class RandomChessPlayer(ChessPlayer, RandomPlayer):
 
 
 class MiniMaxingChessPlayer(ChessPlayer, MiniMaxingPlayer):
-
     search_depth = 4
-    value_functions = ['get_board_value']
+    value_functions = ['simple_board_value', ]
+    algorithm = 'shuffling_minimax_alpha_beta'
 
-    def get_board_value(self, node):
-        raise NotImplementedError
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.board = self.game  # MiniMaxing superclass expects this name
+        self.__late = False
+
+    def _is_late_game(self, board, pp):
+        # this could be set some moves in advance, because of depth reading
+        if self.__late:
+            earlyg = [False, False]
+            has_q = [False, False]
+            has_p = [0, 0]
+            for i, t in enumerate(pp[1:]):
+                piece = board[t][1]
+                if piece == 'Q':
+                    has_q[i] = True
+                    if has_p[i] >= 2:
+                        earlyg[i] = True
+                        continue
+                elif piece not in ('P', 'K'):
+                    has_p[i] += 1
+                    if has_p[i] >= 2 and has_q[i]:
+                        earlyg[i] = True
+                        continue
+            if not any(earlyg):
+                player_logger.info('late game is started!')
+                self.__late = True
+        return self.__late
+
+    def simple_board_value(self, node):
+        '''
+            https://chessprogramming.wikispaces.com/Simplified+evaluation+function
+        '''
+        game = node['board']
+        board = game.board
+        pp = game.player_pieces
+        to_move = node['to_move']
+        res = game.check_mate(player_id=(to_move % 2) + 1)
+        # TODO: non sono del tutto sicurissimo che sia corretto guardare l'altro giocatore :/
+        if res == 2:
+            val = -inf
+        elif res == 1 or game.check_draw():
+            val = 0
+        # TODO: domanda 1: to_move e' il giocatore che sta valutando o e' l'altro?
+        # TODO: domanda 2: e' automatico il cambiamento da bianco a nero o devo girare cose?
+        else:
+            val = 0
+            late_game = self._is_late_game(board, pp)
+            # assumiamo che la risposta alla domanda 1 sia si'
+            color = 1 if to_move == self.id else -1
+            for pl, sgn in ((to_move, color), ((to_move % 2) + 1, -color)):
+                pieces = pp[pl]
+                tables = POSITIONS_VALUES[pl]
+                for tile in pieces:
+                    piece = board[tile][1]
+                    val += sgn * PIECES_VALUES[piece]
+                    val += sgn * tables[piece if not late_game or piece != 'K' else 'L'][tile[1]][tile[0]]
+        return val
 
     @staticmethod
     def child_function(node):
-        board = node['board']
+        board = node['board']  # board is a referee actually
         to_move = node['to_move']
         for strmove in get_available_moves_from_game(board, to_move):
-            # TODO: probably there's a more performant way
             new_board = board.copy()
-            new_board.execute_move(strmove)
+            new_board.execute_turn(to_move, strmove)
             yield {
                 'board': new_board,
                 'move': strmove,
@@ -222,13 +360,13 @@ class MiniMaxingChessPlayer(ChessPlayer, MiniMaxingPlayer):
         if move is None:
             # state of the board BEFORE the move
             return False
-        return board.check_checkmate(player_id=(node['to_move'] % 2) + 1) or board.check_draw()
+        return board.check_mate(player_id=(node['to_move'] % 2) + 1) or board.check_draw()
 
 
 class TensorFlowChessPlayer(ChessPlayer):
     '''
     '''
-    saved_nn_path = 'p'#DEFAULT_PATH
+    saved_nn_path = 'p'  # DEFAULT_PATH
 
     def setup(self, player_id, inp):
         raise NotImplementedError

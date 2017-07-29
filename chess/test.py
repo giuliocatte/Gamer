@@ -14,15 +14,7 @@ AIS = [{
         'name': 'search_depth',
         'caption': 'search depth',
         'default': 4,
-        'values': [
-            '',
-            'picks immediate best move',
-            'considers also your next move',
-            'plans two moves ahead',
-            'plans three moves ahead',
-            'plans four moves ahead',
-            '...'
-        ]
+        'values': []
     }]
 }, {
     'caption': 'random',

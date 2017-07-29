@@ -141,6 +141,18 @@ class Chess(SequentialGame):
             for i in range(8):
                 b[i, y] = col + 'P'
 
+    def copy(self):
+        new = Chess()
+        new.draw_turn_counter = self.draw_turn_counter
+        new.available_ep = self.available_ep
+        new.available_castles = [None] + [ac.copy() for ac in self.available_castles[1:]]
+        new.kings = list(self.kings)
+        new.player_pieces = [None] + [pp.copy() for pp in self.player_pieces[1:]]
+        new.tomove = self.tomove
+        new.board = self.board.copy()
+        # it's ok for new.moves to be empty
+        return new
+
     def setup(self):
         ref_logger.info('starting game')
         return [['WHITE'], ['BLACK']]
@@ -339,6 +351,7 @@ class Chess(SequentialGame):
         return RUNNING
 
     def check_draw(self):
+        # TODO: threefold repetition
         pp = self.player_pieces
         return self.draw_turn_counter == 100 or len(pp[1]) == len(pp[2]) == 1
 
