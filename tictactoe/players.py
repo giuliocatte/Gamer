@@ -3,7 +3,13 @@ from core.players import RandomPlayer, IOPlayer, Player, MiniMaxingPlayer
 from core.main import player_logger
 
 from .referee import LINES, SYMBOLS, EMPTY
-from .nn import get_callable_from_saved_network, DEFAULT_PATH
+try:
+    from .nn import get_callable_from_saved_network, DEFAULT_PATH
+except ModuleNotFoundError:
+    TF = False
+    DEFAULT_PATH = ''
+else:
+    TF = True
 
 inf = float('inf')
 
@@ -133,6 +139,8 @@ class TensorFlowTTTPlayer(TTTPlayer):
     saved_nn_path = DEFAULT_PATH
 
     def setup(self, player_id, inp):
+        if not TF:
+            raise RuntimeError('tensorflow not present')
         super().setup(player_id, inp)
         self.nn = get_callable_from_saved_network(self.saved_nn_path)
 

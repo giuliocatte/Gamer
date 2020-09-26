@@ -6,6 +6,7 @@
     - alpha beta pruning for minimax/negamax
     - an AI that combines minimax and neural network (using nn only when the outcome is not clear)
     - understanding why applying the nn player is so slow (i'd have guessed "training slow but applying fast")
+        it appears to be slower with each activation: try "python3 arena.py --game c4 neural mini4 - challenge"
     - when minimax detects a loss ahead, it should play hoping for an opponent error
     - asyncio for running the players simultaneously (in simultaneous games)
     - control of timeouts for AIs

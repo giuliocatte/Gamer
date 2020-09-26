@@ -67,8 +67,8 @@ class SequentialGame(Game):
     '''
     turn_type = SEQUENTIAL
 
-    def __init__(self, random_seed=None):
-        super().__init__(random_seed)
+    def __init__(self, players_number, random_seed=None):
+        super().__init__(random_seed=random_seed, players_number=players_number)
         self.turn_number = 0
 
     def execute_turn(self, player_id, move):
@@ -140,6 +140,7 @@ class Match:
             for b in board:
                 m = p.listener.send(b)  # if input has multiple lines, only the last output is of interest
             # TODO: valutare timeout
+            match_logger.debug('sending move %s to referee', m)
             try:
                 state = self.referee.execute_turn(i, m)
             except InvalidMove as e:

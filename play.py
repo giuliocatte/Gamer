@@ -8,10 +8,9 @@ from core.main import match_logger, player_logger, ref_logger, Match, DRAW
 match_logger.setLevel(logging.WARN)
 player_logger.setLevel(logging.WARN)
 ref_logger.setLevel(logging.INFO)
-CLEAR_BOARD = True
 
 
-def test_game(mod, ai_number=1):
+def test_game(mod, ai_number=1, **kwargs):
     ais = []
     for n in range(ai_number):
         print('choose AI for player {}:'.format(n+2))
@@ -47,7 +46,7 @@ def test_game(mod, ai_number=1):
         rand = True
 
     g = mod.REFEREE_CLASS(players_number=ai_number + 1)
-    match = Match(game=g, players=players, random_order=rand, clear_board=CLEAR_BOARD)
+    match = Match(game=g, players=players, random_order=rand, **kwargs)
     outcome = match.run()
     if outcome == DRAW:
         print('Draw!')
@@ -57,26 +56,34 @@ def test_game(mod, ai_number=1):
 
 class Play:
 
-    def ttt(self):
+    def __init__(self, p_log='WARN', r_log='WARN', m_log='WARN'):
+        match_logger.setLevel(getattr(logging, m_log))
+        player_logger.setLevel(getattr(logging, p_log))
+        ref_logger.setLevel(getattr(logging, r_log))
+
+    def chess(self, **kwargs):
+        import chess.test as mod
+        test_game(mod, **kwargs)
+
+    def ttt(self, **kwargs):
         ''' plays a game of tic tac toe
         '''
         import tictactoe.test as mod
-        test_game(mod)
+        test_game(mod, **kwargs)
 
-    def c4(self):
+    def c4(self, **kwargs):
         ''' plays a game of connect4
         '''
         import connectfour.test as mod
-        test_game(mod)
+        test_game(mod, **kwargs)
     
-    def brasserie(self):
+    def brasserie(self, **kwargs):
         ''' plays a game of Brasserie
         '''
         print('choose verbosity level: 1 minimum, 2 verbose (default), 3 every log possible')
         verb = int(input() or 2)
         if verb >= 2:
-            global CLEAR_BOARD
-            CLEAR_BOARD = False
+            kwargs['clear_board'] = False
             ref_logger.setLevel(logging.DEBUG)
             if verb == 3:
                 player_logger.setLevel(logging.DEBUG)
@@ -85,7 +92,7 @@ class Play:
         import brasserie.test as mod
         print('choose number of opponents: (default 2)')
         ais = int(input() or 2)
-        test_game(mod, ais)
+        test_game(mod, ais, **kwargs)
 
 
 if __name__ == '__main__':

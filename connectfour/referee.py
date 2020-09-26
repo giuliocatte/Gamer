@@ -41,8 +41,8 @@ class ConnectFour(SequentialGame):
 
         moves are numbers from 1 to 7, so internally there's always a -1 shift
     '''
-    def __init__(self):
-        super().__init__()
+    def __init__(self, players_number=2):
+        super().__init__(players_number=players_number)
         self.board = [[0] * 6 for i in range(7)]
 
     def setup(self):
