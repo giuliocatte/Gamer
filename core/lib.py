@@ -74,12 +74,14 @@ def shuffling_negamax(node, value_function, child_function, terminal_function, d
     return bestvalue, bestchild
 
 
-def maximizer(value_function, elements):
-    bestvalue, bestel, el = -inf, None, None
+def maximizer(value_function, elements, multiple=False):
+    bestvalue, bestel, el = -inf, ([] if multiple else None), None
     for el in elements:
         v = value_function(el)
         if v > bestvalue:
             bestvalue = v
-            bestel = el
-    return bestel or el  # nel caso tutte le mosse abbiano -inf come valore, ne ritorno una a caso
+            bestel = [el] if multiple else el
+        elif multiple and v == bestvalue:
+            bestel.append(el)
+    return bestel or el  # nel caso non multiplo in cui tutte le mosse abbiano -inf come valore, ne ritorno una a caso
 

@@ -1,6 +1,7 @@
 import logging
 import os
 from random import shuffle
+from platform import system
 
 match_logger = logging.getLogger('gamer.match')
 ref_logger = logging.getLogger('gamer.referee')
@@ -14,6 +15,8 @@ DRAW = -1
 SIMULTANEOUS = 1
 SEQUENTIAL = 2
 
+CLEAR_COMMAND = 'cls' if system() == 'Windows' else 'clear'
+
 
 class InvalidMove(Exception):
     pass
@@ -25,7 +28,9 @@ class Game:
     '''
     players_number = 2
 
-    def __init__(self, random_seed=None):
+    def __init__(self, players_number=None, random_seed=None):
+        if self.players_number:
+            self.players_number = players_number
         self.random_seed = random_seed
         self.round_number = 0
 
@@ -111,6 +116,10 @@ class Match:
     def simultaneous_turn(self):
         boards = self.referee.get_boards()
         moves = []
+        if self.interactive:
+            if self.clear_board:
+                os.system(CLEAR_COMMAND)
+            self.referee.interactive_board()
         for p, b in zip(self.players, boards):
             for r in b:
                 m = p.listener.send(r)  # if input has multiple lines, only the last output is of interest
@@ -126,7 +135,7 @@ class Match:
             match_logger.debug('player %s to move', i)
             if self.interactive:
                 if self.clear_board:
-                    os.system('clear')
+                    os.system(CLEAR_COMMAND)
                 self.referee.interactive_board()
             for b in board:
                 m = p.listener.send(b)  # if input has multiple lines, only the last output is of interest
@@ -134,7 +143,7 @@ class Match:
             try:
                 state = self.referee.execute_turn(i, m)
             except InvalidMove as e:
-                match_logger.warn('player %s lost due to invalid move:\n%s', i, e)
+                match_logger.warning('player %s lost due to invalid move:\n%s', i, e)
                 # TODO: questo funziona solo per due giocatori
                 state = (i % 2) + 1
             if state != RUNNING:
@@ -164,7 +173,7 @@ class Match:
         match_logger.info('game ending with state: %s', state)
         if self.interactive:
             if self.clear_board:
-                os.system('clear')
+                os.system(CLEAR_COMMAND)
             self.referee.interactive_board()
         return state
 

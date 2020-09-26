@@ -16,7 +16,9 @@ class Player:
     turn_lines = 1
 
     def __init__(self, **kw):
+        self.id = None
         self.arguments = kw
+        self.listener = None
         self.reset()
         for k, v in kw.items():
             setattr(self, k, v)
@@ -62,20 +64,20 @@ class IOPlayer(Player):
     loud = True
 
     def setup(self, player_id, inp):
+        super().setup(player_id, inp)
         if self.loud:
-            print('player', player_id, 'received starting configuration:')
+            print('player {}, you received starting configuration:'.format(self.id))
             for i in range(self.setup_lines):
                 print('{}. {}'.format(i + 1, inp[i]))
-        return super().setup(player_id, inp)
 
     def process_turn_input(self, inp):
         if self.loud:
-            print('received input:')
+            print('player {}, you received input:'.format(self.id))
             for i in range(self.turn_lines):
                 print('{}. {}'.format(i + 1, inp[i]))
 
     def compute_move(self):
-        print('enter move: ', end='')
+        print('player {}, please enter move: '.format(self.id), end='')
         return input()
 
 
