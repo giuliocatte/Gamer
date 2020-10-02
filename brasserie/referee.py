@@ -387,7 +387,14 @@ class Brasserie(SimultanousGame):
             imgplot = plt.imshow(p_img, interpolation="bicubic")
             #plt.xticks([]), plt.yticks([])  # to hide tick values on X and Y axis
             plt.axis("off")
-            title = "Plancia %d" % (i+1)
+            
+            title = 'Player {} - {}'.format(i+1,p['status'])
+
+            if w := p['wc_dices']:
+                for (power, wait) in w:
+                    #print('a dice with power', power, 'is waiting in wc for', wait, 'turns')
+                    title = title + '\nWC {} in {} turns'.format(power,wait)
+
             ax.set_title(title)
 
             decine = floor(p['points']/10)
@@ -398,6 +405,8 @@ class Brasserie(SimultanousGame):
             for t, pos in zip(PLAYER_TRACKS_NAMES, p['tracks']):
                 #print('track', PLAYER_TRACKS_NAMES.index(t), 'at position', track_pos_x[pos])
                 plt.scatter(track_pos_x[pos],track_pos_y[PLAYER_TRACKS_NAMES.index(t)],s=140,c='r')
+
+            
 
         ax = fig.add_subplot(1, N_Players+1, N_Players+1)
         imgplot = plt.imshow(b_img, interpolation="bicubic")
