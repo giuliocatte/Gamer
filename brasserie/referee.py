@@ -1,6 +1,10 @@
 from random import shuffle
 from core.main import SimultanousGame, InvalidMove, DRAW, RUNNING, ref_logger
 from core.lib import maximizer
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+import numpy as np
+from math import floor
 
 RED = 'RED'
 YELLOW = 'YELLOW'
@@ -354,3 +358,57 @@ class Brasserie(SimultanousGame):
                     '{} {}'.format(v, n) for v, n in zip(d[3], PLAYER_TRACKS_NAMES)), d=d))
 
         print(len(self.deck), 'cards remaining in deck,', len(self.discard_pile), 'cards in discard pile')
+
+
+        ## CODICE PER DISPLAY BOARD E PLANCE
+        # mancano i dadi al bagno
+        
+        SIZE = 4.5
+
+        unita_pos_y = np.array([100,200,300,400,500,600,700,800,900,1000]) # cifre da 0 a 9
+        decine_pos  = np.array([[0,0],[180,100],[180,200],[180,300],[280,100],[280,200],[280,300]])
+        track_pos_y = np.array([530,730,950])
+        track_pos_x = np.array([230,350,470,590,710,830,950])
+        
+        common_track_pos_y = np.array([800,700,590,430,300,190,70])
+        common_track_pos_x = np.array([200,900])
+        common_track_wc    = np.array([660,410,200])
+
+        # load the image
+        b_img = mpimg.imread("./brasserie/BR_board1.jpg")
+        p_img = mpimg.imread("./brasserie/BR_plancia1.jpg")
+
+        N_Players = len(self.players)
+        plt.close('all')
+        fig = plt.figure(num = 1, figsize = [SIZE*N_Players, SIZE])
+
+        for i, p in enumerate(self.players):
+            ax = fig.add_subplot(1, N_Players+1, i+1)
+            imgplot = plt.imshow(p_img, interpolation="bicubic")
+            #plt.xticks([]), plt.yticks([])  # to hide tick values on X and Y axis
+            plt.axis("off")
+            title = "Plancia %d" % (i+1)
+            ax.set_title(title)
+
+            decine = floor(p['points']/10)
+            unita  = p['points'] - decine*10
+            plt.scatter(0,unita_pos_y[unita],c='r',s=140,marker='s')
+            plt.scatter(decine_pos[decine][0],decine_pos[decine][1],s=140,c='r',marker='s')
+
+            for t, pos in zip(PLAYER_TRACKS_NAMES, p['tracks']):
+                #print('track', PLAYER_TRACKS_NAMES.index(t), 'at position', track_pos_x[pos])
+                plt.scatter(track_pos_x[pos],track_pos_y[PLAYER_TRACKS_NAMES.index(t)],s=140,c='r')
+
+        ax = fig.add_subplot(1, N_Players+1, N_Players+1)
+        imgplot = plt.imshow(b_img, interpolation="bicubic")
+        #plt.xticks([]), plt.yticks([])  # to hide tick values on X and Y axis
+        plt.axis("off")
+        ax.set_title('Board')
+
+        for t, pos in zip(COMMON_TRACKS_NAMES, self.common_tracks):
+            #print('track', t, 'at position', pos + 1)
+            plt.scatter(common_track_pos_x[COMMON_TRACKS_NAMES.index(t)],common_track_pos_y[pos],s=140,c='r')
+
+        fig.tight_layout()
+        plt.show(block=False)
+        
