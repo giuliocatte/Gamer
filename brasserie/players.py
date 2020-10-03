@@ -76,8 +76,6 @@ class HeuristicBPlayer(BPlayer):
     def compute_move(self):
         return getattr(self, '_logic_' + self.logic)()
 
-    def
-
     def _compute_worst_common(self):
         actual_common = [int(i) for i in self.common_tracks.split(',')]
         worst_common = [None] * len(actual_common)
