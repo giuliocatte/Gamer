@@ -17,12 +17,10 @@ speaking fellow reads this code: sorry pal.
 
 ## Requirements
 
-This software has been developed with python 3.6; probably it'll work
-also with previous versions, but sooner or later I'll throw in
-asyncio, so 3.4+ will be required.
+Python 3.8+ is required.
 
 As non-standard dependencies, I use tensorflow (I used the dumbest
-installation for macos without gpu), numpy (which is actually
+installation for macos without gpu) but it is not mandatory if you don't use NN AIs, numpy (which is actually
 required for tensorflow, so I'm not sure I should write it here),
 colorama for interactive output, and Python Fire for
 CLI.
